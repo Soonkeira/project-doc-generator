@@ -80,14 +80,14 @@ git log -n 10 --pretty=format:"%h|%ad|%an|%s" --date=short
 
 **Example Output:**
 ```
-a1b2c3d|2026-05-09|Li Rongqi|feat: Add user login feature
+a1b2c3d|2026-05-09|Wang Wu|feat: Add user login feature
 e4f5g6h|2026-05-08|Zhang San|fix: Fix order query bug
 i7j8k9l|2026-05-07|Li Si|perf: Optimize database query performance
 ```
 
 ### 2.3 Get Git Commit Author
 
-**Purpose**: When the current system user cannot be obtained, extract the author name from the target project's Git records to use as the document author.
+**Purpose**: This is **priority 3** in the four-level author acquisition priority (① author explicitly provided by the user → ② local default author `Soonkeira` → ③ Git commit author → ④ leave empty). When the user has not provided an author, extract the author name from the target project's Git records to use as the document author. Using a machine account name (`$env:USERNAME` / `whoami`) as the author is **strictly prohibited**. The priority rules take the "Author Information Acquisition" section of `SKILL.md` as the single authority.
 
 **Command:**
 ```bash
@@ -147,7 +147,7 @@ git log -1 --format=%cd --date=short
 
 | Version | Date | Type | Module | Description | Author |
 |---------|------|------|--------|-------------|--------|
-| 1.26.509.1234 | 2026-05-09 | New Feature | User Management | Add user login feature | Li Rongqi |
+| 1.26.509.1234 | 2026-05-09 | New Feature | User Management | Add user login feature | Wang Wu |
 | 1.26.508.1233 | 2026-05-08 | Bug Fix | Order Management | Fix order query bug | Zhang San |
 | 1.26.507.1232 | 2026-05-07 | Optimization | Database | Optimize query performance | Li Si |
 ```
@@ -161,7 +161,7 @@ git log -1 --format=%cd --date=short
 | Type | Change type | New Feature, Bug Fix, Optimization, Removal, Refactor |
 | Module | Affected functional module | User Management, Order Management |
 | Description | Brief description of the change | Add user login feature |
-| Author | Committer of the change | Li Rongqi |
+| Author | Committer of the change | Wang Wu |
 
 ### 3.3 Change Type Definitions
 
@@ -259,9 +259,3 @@ function getVersion() {
 
 console.log(getVersion());
 ```
-
----
-
-**Document Author:** Li Rongqi
-**Created Date:** 2026-05-09
-**Document Version:** 1.0

@@ -1,10 +1,13 @@
 # Document Templates
 
 > **Author Acquisition Priority**  
-> When generating documents, the author field is populated based on the following priority:  
-> 1. **Current User**: The user identifier invoking the Skill (`$env:USERNAME` / `whoami`)  
-> 2. **Git Commit Author**: The latest commit author from the target project (`git log -1 --format=%an`)  
-> 3. **Leave Empty**: If neither can be obtained
+> When generating documents, the author field is populated based on the following four-level priority (the **single authority is the "Author Information Acquisition" section of `SKILL.md`; this section stays consistent with it**):  
+> 1. **Author explicitly provided by the user**  
+> 2. **Local default author**: `Soonkeira` ([GitHub](https://github.com/Soonkeira))  
+> 3. **Git commit author**: extract the author name from the latest commit of the target project (`git log -1 --format=%an`)  
+> 4. **Leave empty**: leave it blank when it cannot be confirmed (`Author: `), and never treat the machine account name as the real author  
+>
+> Using a machine account name (`$env:USERNAME` / `whoami`) as the author is **strictly prohibited**.
 
 ## 01-Requirement Specification Template
 
@@ -473,3 +476,18 @@ public ReturnType MethodName(ParamType param)
 |---------|---------------|----------|
 | Problem A | Cause A | Solution A |
 ```
+
+---
+
+## Project Knowledge Layer Templates
+
+The 7 traditional document templates above **remain unchanged** (file names, numbering, and paths are neither renamed nor deleted); they are presentation views of the knowledge layer. The project knowledge layer templates added in v1.2.0 are in **`references/en/business-logic-template.md`**:
+
+| Template | Output path |
+|----------|-------------|
+| Knowledge map template | `Doc/<project-name>/en/00-Project Knowledge Map.md` |
+| Business logic entry template | `Doc/<project-name>/en/business/BL-<NNN>-<business-name>.md` |
+
+That file also defines: the BL numbering rules (allocated in segments by business domain; ranges are never reused or reordered), evidence status (`Verified` / `Partially Verified` / `Inferred` / `Not Found`), freshness (`Current` / `⚠ Possibly Stale`, determined mechanically from Git diff), the verification baseline, and traceability good/bad examples.
+
+> The knowledge layer is the core; the 7 documents are presentation views of it. The knowledge map must be centered on the business capability index and must not be only a project introduction.
