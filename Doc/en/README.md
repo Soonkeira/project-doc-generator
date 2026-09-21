@@ -146,6 +146,7 @@ In query mode, if a BL entry is missing or cannot be verified, the tool states e
 project-doc-generator/
 ├── README.md                   # Project navigation home page
 ├── SKILL.md                    # Skill workflow and rules
+├── LICENSE                     # MIT License
 ├── Doc/{cn,en}/README.md       # Chinese / English full documentation
 └── references/{cn,en}/
     ├── document-templates.md        # The 7 standard document templates

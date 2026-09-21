@@ -6,6 +6,7 @@
 </p>
 
 <p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/version-v1.2.0-blue.svg" alt="Version: v1.2.0">
   <img src="https://img.shields.io/badge/author-Soonkeira-orange.svg" alt="Author">
 </p>
@@ -132,7 +133,7 @@
 project-doc-generator/
 ├── README.md                   # 项目导航首页 (你在这里)
 ├── SKILL.md                    # Skill 工作流与规则定义
-├── LICENSE                     # 待补充（当前仓库未包含）
+├── LICENSE                     # MIT License
 ├── Doc/
 │   ├── cn/README.md            # 中文完整文档
 │   └── en/README.md            # English full documentation

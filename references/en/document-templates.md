@@ -283,7 +283,7 @@ Write-Host "Change log generated: $OutputFile"
 
 ## 04-Database Design Template
 
-```markdown
+````markdown
 # Database Design
 
 **Project Name**: XXX Project
@@ -320,11 +320,11 @@ Table A → Table B → Table C
 | Table Name | Index Fields | Index Type | Description |
 |------------|-------------|------------|-------------|
 | Table A | field1, field2 | Composite index | Description |
-```
+````
 
 ## 05-API Documentation Template
 
-```markdown
+````markdown
 # API Documentation
 
 **Project Name**: XXX Project
@@ -373,7 +373,7 @@ public ReturnType MethodName(ParamType param)
 | Scenario | Result | Description |
 |----------|--------|-------------|
 | Scenario A | Result A | Description |
-```
+````
 
 ## 06-Test Plan Template
 

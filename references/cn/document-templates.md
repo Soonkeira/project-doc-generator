@@ -283,7 +283,7 @@ Write-Host "变更日志已生成: $OutputFile"
 
 ## 04-数据库设计.md 模板
 
-```markdown
+````markdown
 # 数据库设计
 
 **项目名称**：XXX项目
@@ -320,11 +320,11 @@ Write-Host "变更日志已生成: $OutputFile"
 | 表名 | 索引字段 | 索引类型 | 说明 |
 |------|----------|----------|------|
 | 表A | 字段1, 字段2 | 复合索引 | 说明 |
-```
+````
 
 ## 05-API文档.md 模板
 
-```markdown
+````markdown
 # API 文档
 
 **项目名称**：XXX项目
@@ -373,7 +373,7 @@ public ReturnType MethodName(ParamType param)
 | 场景 | 返回结果 | 说明 |
 |------|----------|------|
 | 场景A | 结果A | 说明 |
-```
+````
 
 ## 06-测试计划.md 模板
 

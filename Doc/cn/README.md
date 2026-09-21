@@ -146,6 +146,7 @@ Doc/<项目名称>/
 project-doc-generator/
 ├── README.md                   # 项目导航首页
 ├── SKILL.md                    # Skill 工作流与规则定义
+├── LICENSE                     # MIT License
 ├── Doc/{cn,en}/README.md       # 中文 / 英文完整文档
 └── references/{cn,en}/
     ├── document-templates.md        # 7 套传统文档模板
