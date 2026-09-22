@@ -1,4 +1,4 @@
-# Project Knowledge Layer Templates (v1.3.0)
+# Project Knowledge Layer Templates (v1.4.0)
 
 > **Positioning**: The knowledge layer is the core; the 7 traditional documents (01–07) are only different presentation views of the knowledge layer. The 7 document templates are in `references/en/document-templates.md`, and their file names, numbering, and paths remain unchanged.
 >
@@ -9,6 +9,8 @@
 > ```
 >
 > **Bidirectional index**: BL entry → source (the "Source Evidence", "Data Changes", "Trigger Entry Points", and "External Impacts" sections of each BL entry) and source → BL (`00-Source Index.md`) are reverse indexes of each other and must stay consistent.
+>
+> **Query mode (read-only)**: read-only means **not modifying files**, not "not reading source". Query mode may read source code, `git diff`, and related tests for immediate verification, but **must not modify the knowledge layer or the source**. The normal path is "question → knowledge map → BL → answer directly"; when a BL is missing, its freshness status is not `Current`, or the evidence is insufficient, take "BL → source index (locate symbols and files) → read the actual source → read-only verification → answer". **Never tell the user to go run a sync just because the documentation is stale.**
 >
 > **Author acquisition priority**: `SKILL.md`, section "Author Information Acquisition", is the single authority (four levels: (1) author explicitly provided by the user → (2) local default author `Soonkeira` (https://github.com/Soonkeira) → (3) Git commit author `git log -1 --format=%an` → (4) leave empty). Using a machine account name (`$env:USERNAME` / `whoami`) as the author is **strictly prohibited**.
 >
@@ -66,8 +68,17 @@
 |-------|-------|
 | last_verified_commit | `<commit hash>` |
 | Verification date | YYYY-MM-DD |
+| Working tree status | `Clean` / `Dirty` (determination command `git status --porcelain`: empty output means `Clean`) |
+| Verification status | `Formal baseline` / `Provisional working-tree analysis` |
+| Formal baseline | `<commit hash>` (advanced after re-verification only while the working tree is `Clean`; kept at the previous formal baseline, not advanced, while `Dirty`) |
 | Freshness determination available | Yes |
 | Freshness determination method | Change file set (committed part `git diff --name-status -M <last_verified_commit>..HEAD` ∪ working-tree part `git status --porcelain`) matched against each BL entry's "Source Evidence", "Core Execution Flow", "Data Changes", "Trigger Entry Points", "External Impacts", "Preconditions", and "Related Tests" through the multi-layer impact analysis (see section 4.2) |
+| traditional_docs_status | `current` / `outdated` |
+| traditional_docs_generated_from_commit | `<commit hash at which the 7 traditional documents were generated>` |
+
+> **The verification baseline advances only while the working tree is clean**: while the working tree is `Dirty` you may analyze, answer questions, and update BL content, but you **must not advance `last_verified_commit`** and **must not mark an entry `Current`**; that entry's freshness status is `Provisional Working-Tree Analysis`. Rationale: a BL may have been generated from **uncommitted working-tree code**; if the user later discards those changes with `git restore`, HEAD is unchanged and the working tree is clean again, yet the BL describes an implementation that **no longer exists** while the system still considers it "current".
+>
+> **Traditional document freshness**: sync mode does **not** update the 7 traditional documents, so after a sync (and once the code has changed) `traditional_docs_status` must be `outdated` until generation mode is run again, which returns it to `current`.
 
 ### Most Recent Incremental Analysis
 
@@ -86,32 +97,49 @@
 |-------|-------|
 | last_verified_commit | Not Found (no Git baseline) |
 | Verification date | YYYY-MM-DD |
+| Working tree status | Not Found (no Git baseline) |
+| Verification status | `Provisional working-tree analysis` |
+| Formal baseline | Not Found (no Git baseline) |
 | Freshness determination available | No |
 | Freshness determination method | No freshness determination; every run requires a full re-verification |
+| traditional_docs_status | Not Found (no Git baseline) |
+| traditional_docs_generated_from_commit | Not Found (no Git baseline) |
 | Most recent incremental analysis | Not Found (no Git baseline, no incremental analysis) |
 
-> Never fabricate a commit hash when there is no Git baseline.
+> Never fabricate a commit hash when there is no Git baseline (including `traditional_docs_generated_from_commit`).
 
-## 3. Business Capability Index
+## 3. ID Registry
+
+| Item | Value |
+|------|-------|
+| Current highest ID | `BL-006` |
+| Next available ID | `BL-007` |
+| Retired IDs (tombstones, never reused) | `BL-006` (former "Order Batch Export", retired YYYY-MM-DD) |
+
+> ID assignment rule: a new entry's ID = **historical highest BL ID + 1** (the current highest is `BL-006`, so the next new entry is `BL-007`).
+> A deleted ID is a **permanent tombstone that is never reused**; **gaps caused by deletion are allowed** (a gap is normal, not an error). **A stable ID matters far more than consecutive numbering**.
+> **Why this registry is required**: without it, "never reused" cannot be guaranteed — when the entry holding the highest ID is deleted, looking only at the current highest ID falls back to reusing a retired ID; read this table before assigning an ID.
+
+## 4. Business Capability Index
 
 > This section is the main body of the knowledge map. **The knowledge map must not be only a project introduction**; the business capability index must be its main body.
-> The ID column must be a link to the BL entry; IDs increase **globally in order of first creation** and are unrelated to business domains — a domain determines grouping only, never numbering.
+> The ID column must be a link to the BL entry; IDs increase by **historical highest BL ID + 1** (see the "ID Registry" section and the numbering rules in section 3.1) and are unrelated to business domains — a domain determines grouping only, never numbering.
 > Evidence status and freshness status are **two independent fields** shown in two separate columns; **conflating them is strictly prohibited**.
 
-### 3.1 <Business Domain One>
+### 4.1 <Business Domain One>
 
 | ID | Business Capability | Description | Evidence Status | Freshness Status |
 |----|---------------------|-------------|-----------------|------------------|
 | [BL-001](business/BL-001-<business-name>.md) | <business capability name> | <one sentence on the problem this capability solves> | Verified | Current |
 | [BL-002](business/BL-002-<business-name>.md) | <business capability name> | <one sentence on the problem this capability solves> | Partially Verified | ⚠ Possibly Stale |
 
-### 3.2 <Business Domain Two>
+### 4.2 <Business Domain Two>
 
 | ID | Business Capability | Description | Evidence Status | Freshness Status |
 |----|---------------------|-------------|-----------------|------------------|
 | [BL-003](business/BL-003-cancel-order.md) | Cancel Order | <one sentence on the problem this capability solves> | Verified | Current |
 
-## 4. Common Business Question Index
+## 5. Common Business Question Index
 
 | Business Question | Related Business Logic |
 |-------------------|------------------------|
@@ -122,14 +150,14 @@
 | What data does this API ultimately modify? | [BL-001](business/BL-001-<business-name>.md) |
 | Where in the code is this business rule? | [BL-002](business/BL-002-<business-name>.md) |
 
-## 5. Not Found / Inferred Entries Summary
+## 6. Not Found / Inferred Entries Summary
 
 | ID | Business Capability | Evidence Status | Reason and Limitations |
 |----|---------------------|-----------------|------------------------|
 | [BL-004](business/BL-004-<business-name>.md) | <business capability name> | Inferred | <inferred only from directory structure and naming; no call-chain evidence found> |
 | [BL-005](business/BL-005-<business-name>.md) | <business capability name> | Not Found | <no entry point, test, or data access code found> |
 
-## 6. Coverage and Limitations
+## 7. Coverage and Limitations
 
 - Covered: <business domains for which knowledge entries exist>
 - Not covered: <business domains without entries yet, and why>
@@ -140,6 +168,9 @@
 
 - The **Analysis Scope** must reflect what was actually scanned: whatever is listed as scanned must really have been read, and the reason for skipping sensitive files and dependency directories must be stated.
 - The **Verification Baseline** is the global baseline; `last_verified_commit`, the verification date, and the "Most Recent Incremental Analysis" must come from real Git command output and real analysis results (the changed-file count includes uncommitted changes). Without Git, use the degraded form and state explicitly that "every run requires a full re-verification".
+- **The verification baseline advances only while the working tree is clean**: run `git status --porcelain` first to determine the `Working tree status` (empty output = `Clean`, any output = `Dirty`). While `Clean`, you may advance `last_verified_commit` and the `Formal baseline` after re-verification and mark the re-verified entries `Current`; while `Dirty`, you **must not advance `last_verified_commit`** and **must not mark anything `Current`**, and the `Verification status` is `Provisional working-tree analysis`.
+- **Traditional document freshness**: `traditional_docs_status` holds `current` / `outdated`, and `traditional_docs_generated_from_commit` holds the commit at which the 7 traditional documents were generated. Sync mode does not update the 7 traditional documents, so after a sync (and once the code has changed) it must be `outdated` until generation mode is run again, which returns it to `current`.
+- The **ID Registry** must stay consistent with the business capability index and the BL entries: `Current highest ID` is the historical highest BL ID (the historical maximum including retired IDs), `Next available ID` = current highest ID + 1, and `Retired IDs` lists every tombstone individually with its retirement date. A retired ID must not appear in the business capability index at the same time (this table is Example (placeholder, not project fact); replace it with real IDs when generating).
 - The **Business Capability Index** is grouped by business domain, one table per group, with the fixed columns `| ID | Business Capability | Description | Evidence Status | Freshness Status |`. Do not add, remove, or rename columns, and do not merge the two statuses into one column.
 - **The Business Capability Index is displayed grouped by business domain**: a group heading holds only the business domain name and **must not carry any number range**; the business domain must match the `**Business Domain**` field in the header of each BL entry.
 - The **Not Found / Inferred Entries Summary** lists only entries whose evidence status is `Inferred` or `Not Found`, with their evidence gaps; that table holds the evidence status only, never the freshness status.
@@ -174,7 +205,7 @@
 
 ---
 
-> This index is aggregated from the "Source Evidence", "Data Changes", "Trigger Entry Points", and "External Impacts" sections of every BL entry and must stay consistent with those entries; any inconsistency counts as a validation failure.
+> This index is aggregated from the "Source Evidence", "Data Changes", "Trigger Entry Points", "External Impacts", and "Related Tests" sections of every BL entry and must stay consistent with those entries; any inconsistency counts as a validation failure.
 
 ## 1. Source Files and Symbols → BL
 
@@ -204,32 +235,55 @@
 |--------------------|------------|
 | `ORDER_CANCEL_WINDOW_MINUTES` | [BL-003](business/BL-003-cancel-order.md) |
 
-## 5. Uncovered Source Files
+## 5. External Dependencies / Resources → BL
+
+| Type | Identifier | Covered BL |
+|------|------------|------------|
+| Kafka Topic | `order.cancelled` | [BL-003](business/BL-003-cancel-order.md) |
+| Redis Key | `order:cancel:lock:<id>` | [BL-003](business/BL-003-cancel-order.md) |
+
+> Type values: Kafka Topic / MQ / Redis Key / Cache / External API / Object Storage / File System / SMS / Email, etc.
+> Data source: the "External Impacts" section of each BL entry; entries without external impacts do not appear in this table.
+
+## 6. Tests → BL
+
+| Test File | Test Method | Covered BL |
+|-----------|-------------|------------|
+| `tests/order/cancel.spec.ts` | `should cancel pending order` | [BL-003](business/BL-003-cancel-order.md) |
+
+> Data source: the "Related Tests" section of each BL entry; entries without tests do not appear in this table (fabricating test files or test methods is prohibited).
+
+## 7. Uncovered Source Files
 
 | Source Path | Note |
 |-------------|------|
 | `<important file that was scanned but is not referenced by any BL>` | <reason: no entry yet / infrastructure / confirmed to contain no business logic> |
 
-## 6. Coverage and Limitations
+## 8. Coverage and Limitations
 
 - Covered: <business domains and source scope for which a reverse index exists>
 - Not covered: <directories or modules left out of the index, and why>
 - Known limitations: <dynamic dispatch, reflection, config-driven branches, generated code, and other parts that cannot be statically attributed to a BL>
 
-## 7. Maintenance Rules
+## 9. Maintenance Rules
 
 - **Generation mode**: scan source and BL entries in full and build this index in one pass.
 - **Sync mode**: incremental maintenance, updated together with the BL entries; it **writes only the knowledge layer** (knowledge map, source index, BL entries) and does not touch the 7 traditional documents.
-- **Query mode**: **read-only by default**; answer from the knowledge map, source index, and BL entries without writing any file.
-- Whenever the "Source Evidence", "Data Changes", "Trigger Entry Points", or "External Impacts" of a BL entry is added, changed, or removed, the corresponding rows of this index must be updated in the same run.
+- **Query mode**: **read-only by default** — read-only means **not modifying files**, not "not reading source". Query mode may read source code, `git diff`, and related tests for immediate verification, but **must not modify the knowledge layer or the source**.
+- Normal path in query mode: question → knowledge map → BL → answer directly.
+- When a BL is missing, its freshness status is not `Current`, or the evidence is insufficient: BL → **source index** (locate symbols and files) → read the actual source → read-only verification → answer.
+- **Never tell the user to go run a sync just because the documentation is stale**: verify read-only and answer whenever possible.
+- Whenever the "Source Evidence", "Data Changes", "Trigger Entry Points", "External Impacts", or "Related Tests" of a BL entry is added, changed, or removed, the corresponding rows of this index must be updated in the same run.
 - This index is the **reverse index (source → BL)** and must stay consistent with the forward references inside the BL entries (BL → source); any inconsistency counts as a validation failure and must be fixed before delivery.
 ````
 
 ### 2.3 Filling requirements
 
 - This index **must be aggregated from the BL entries**; a separate hand-written list is not allowed, and any inconsistency with the BL entries counts as a validation failure.
-- The four reverse index tables have the fixed columns `| Source Path | Symbol | Type | Covered BL |`, `| Table Name | Change Source | Covered BL |`, `| Entry Identifier | Type | Covered BL |`, and `| Configuration Item | Covered BL |`. Do not add, remove, or rename columns.
+- The six reverse index tables have the fixed columns `| Source Path | Symbol | Type | Covered BL |`, `| Table Name | Change Source | Covered BL |`, `| Entry Identifier | Type | Covered BL |`, `| Configuration Item | Covered BL |`, `| Type | Identifier | Covered BL |`, and `| Test File | Test Method | Covered BL |`. Do not add, remove, or rename columns.
 - The "Covered BL" column must hold links to BL entries; when the same source path is covered by several BLs, **list one row per BL** instead of packing several IDs into one row.
+- The fifth table, "External Dependencies / Resources → BL", is sourced from the "External Impacts" section of each BL entry; `Type` takes values such as Kafka Topic / MQ / Redis Key / Cache / External API / Object Storage / File System / SMS / Email, and `Identifier` holds the real topic name, key pattern, API address, or storage path.
+- The sixth table, "Tests → BL", is sourced from the "Related Tests" section of each BL entry; `Test File` and `Test Method` must be tests that really exist (confirmable by searching the test directory); **fabricating test files or test methods is prohibited**.
 - The "Uncovered Source Files" table lists only **important files** (entry points, services, data access, configuration, migration scripts) with the reason they are uncovered; dependency directories, build artifacts, caches, and generated files are not listed.
 - **Update it together during incremental sync**: after adding or deleting a BL entry, or after changing its evidence sections, the index must be re-aggregated; sync mode writes only the knowledge layer and does not touch the 7 traditional documents.
 - Never present an inferred attribution as a confirmed one: reference relations that cannot be confirmed from code belong in "Coverage and Limitations" with the basis for the inference.
@@ -244,14 +298,30 @@
 - Chinese: `Doc/<项目名称>/cn/business/BL-<NNN>-<业务名称>.md`
 - The same business logic uses the **same number** in every language.
 
-**BL numbering rules**: `BL-` plus a three-digit number, increasing by **order of first creation**: `BL-001`, `BL-002`, `BL-003`, …
+**BL numbering rules**: `BL-` plus a three-digit number, assigned as **historical highest BL ID + 1**: `BL-001`, `BL-002`, `BL-003`, …
 
-- Numbers are **never reused and never reordered**: once an entry's number is assigned it never changes, no matter how entries are added, deleted, or reclassified.
-- When an entry is deleted its number is retired; a new entry takes the **smallest number currently unused** (for example, if `BL-003` was retired together with its entry, the next new entry uses `BL-003`).
+- **ID assignment rule**: a new entry's ID = **historical highest BL ID + 1** (the current highest is `BL-006`, so the next new entry is `BL-007`). The historical highest ID and the retired IDs are recorded in the "ID Registry" section of the knowledge map; read that section before assigning an ID.
+- **Deletion means tombstone**: a deleted ID is a **permanent placeholder that is never reused**; for example, after `BL-006` is deleted it stays as a permanent placeholder, and the next new entry is `BL-007` (= historical highest ID + 1). Note that in this example the historical highest ID is itself a retired one: looking only at the highest ID among live entries would give `BL-005` and would wrongly reuse `BL-006` — which is exactly why the ID Registry must be maintained.
+- **Gaps are allowed**: a gap caused by deletion is normal, not an error; **never reuse a retired ID just to keep the numbering consecutive**.
+- **A stable ID matters far more than consecutive numbering**: once an entry's ID is assigned it never changes, no matter how entries are added, deleted, or reclassified; IDs are **never reused and never reordered**.
 - **No numbering by business domain**: the business domain is metadata, written in the `**Business Domain**: <domain name>` field of the BL entry header, and plays no part in numbering.
 - When a business domain is reclassified, **change only the `**Business Domain**` field and never the ID**; when the knowledge map displays entries grouped by domain, group headings must not carry a number range.
+- After every ID assignment or retirement, the `Current highest ID` / `Next available ID` / `Retired IDs` entries of the knowledge map's "ID Registry" must be updated in the same run.
 
-### 3.2 Template body
+### 3.2 BL Granularity Rules
+
+- **A BL = a business capability or use case (Use Case) perceivable by users/business**, not a Controller method and not a technical function.
+- Several APIs that are only different entry points of the same business capability → **may belong to the same BL**.
+- One API that has completely different business outcomes, transaction boundaries, or business lifecycles → **may be split into several BLs**.
+- **CRUD does not default to "one BL per endpoint"**.
+- Technical utility functions, Repository CRUD, and DTO conversions **do not become BLs of their own**.
+- Name BLs by **stable business semantics** (for example "Create Order", "Cancel Order", "Review Refund", "Allocate Public IP"), not by technical actions.
+- **Refactoring the Controller / Service layers must not change BL IDs** (IDs follow business semantics, not code structure).
+- **Purpose**: keep the size of the generated knowledge system stable across different models and different runs (avoiding 28 entries in one run and 64 in the next).
+
+**Example determination**: if `POST /users`, `GET /users/:id`, `PUT /users/:id`, and `DELETE /users/:id` belong to the same business capability "User Management", they may be merged into one BL; but if "Deactivate User" has its own transaction boundary and lifecycle, it becomes a separate entry.
+
+### 3.3 Template body
 
 > Example (placeholder, not project fact). Replace it with real analysis results when generating documents.
 
@@ -345,14 +415,17 @@ OrderRepository.save()
 `Verified` / `Partially Verified` / `Inferred` / `Not Found` (choose exactly one; judged by the model)
 
 ## 14. Freshness Status
-`Current` / `⚠ Possibly Stale` / `Not Found (no Git baseline)` (choose exactly one; determined mechanically from Git)
+`Current` / `⚠ Possibly Stale` / `Provisional Working-Tree Analysis` / `Not Found (no Git baseline)` (choose exactly one; determined mechanically from Git)
 
 ## 15. Last Verified Version
 - Git commit: `<commit hash>`
 - Verification date: YYYY-MM-DD
+- Working tree status: `Clean` / `Dirty`
+
+> While the working tree is `Dirty`, **keep the formal baseline commit** (do not advance it) and append the line: "This analysis is based on an uncommitted working tree; the formal baseline was not advanced."
 ````
 
-### 3.3 Filling requirements and good/bad examples per section
+### 3.4 Filling requirements and good/bad examples per section
 
 **The order and titles of the 15 fixed sections are verbatim; do not add, remove, rename, or reorder them.**
 
@@ -373,8 +446,8 @@ The header metadata block (project name / business domain / author / date / vers
 | 11 | Related Tests | Real test files and test methods; when there are none, write "No corresponding automated tests found." **Fabricating tests is prohibited.** |
 | 12 | Related Business Logic | Related BL IDs and names (upstream triggers, downstream dependencies, shared data). |
 | 13 | Evidence Status | Choose exactly one: `Verified` / `Partially Verified` / `Inferred` / `Not Found`, judged by the model. |
-| 14 | Freshness Status | Determined mechanically from Git, choose exactly one: `Current` / `⚠ Possibly Stale` / `Not Found (no Git baseline)`; **never write it merged with the evidence status**, and never substitute a model judgment for the Git determination. |
-| 15 | Last Verified Version | Git commit + verification date (per-entry baseline); write "Not Found (no Git baseline)" when there is no Git. |
+| 14 | Freshness Status | Determined mechanically from Git, choose exactly one: `Current` / `⚠ Possibly Stale` / `Provisional Working-Tree Analysis` / `Not Found (no Git baseline)`; **never write it merged with the evidence status**, and never substitute a model judgment for the Git determination. |
+| 15 | Last Verified Version | Git commit + verification date + working tree status (per-entry baseline); while the working tree is `Dirty` keep the formal baseline commit and append the line "This analysis is based on an uncommitted working tree; the formal baseline was not advanced"; write "Not Found (no Git baseline)" when there is no Git. |
 
 **How to write section 5, "Core Execution Flow"**:
 
@@ -427,13 +500,16 @@ OrderRepository.save()
 
 ### 4.2 Freshness status
 
-**Determined mechanically from Git, not judged by the model**; only three values exist:
+**Determined mechanically from Git, not judged by the model**; only four values exist:
 
 | Freshness status | Meaning |
 |------------------|---------|
-| `Current` | None of the files and symbols related to the entry's evidence changed between the "Last Verified Version" commit and the current state (HEAD + working tree) |
+| `Current` | The working tree is `Clean`, and none of the files and symbols related to the entry's evidence changed between the "Last Verified Version" commit and the current working tree |
 | `⚠ Possibly Stale` | Something in that scope did change, and the entry was not re-verified in this run |
+| `Provisional Working-Tree Analysis` | This analysis is based on a `Dirty` working tree (the formal baseline was not advanced); the entry's conclusions hold only for the current working tree |
 | `Not Found (no Git baseline)` | No Git or no valid HEAD, so freshness cannot be determined (see 4.4) |
+
+> Marking an entry `Current` requires a `Clean` working tree: when `git status --porcelain` produces output, the entry must be recorded as `Provisional Working-Tree Analysis` even if it was re-verified and hit no impact layer (see 4.5).
 
 **Step 1: Determine the change file set (uncommitted changes must be included)**
 
@@ -446,6 +522,7 @@ Change file set = **committed part** ∪ **working-tree part**:
 
 > **Never look only at `<base>..HEAD`**: code may already be changed but not yet committed, so comparing commits alone misses staleness; the working-tree part must be included.
 > Untracked files count only when they fall inside the analysis scope; entries ignored by `.gitignore` and default skipped directories (dependencies, build artifacts, caches, etc.) are skipped.
+> **"The change file set includes uncommitted changes" and "the baseline advances only on a clean tree" do not conflict**: the former is used to **detect which entries are affected** (while `Dirty`, uncommitted changes must likewise enter the impact analysis, or staleness is missed), while the latter is used to **decide whether the formal baseline may be advanced** (while `Dirty`, `last_verified_commit` must not be advanced and no entry may be marked `Current`).
 
 **Step 2: Multi-layer impact analysis** (any layer hit means the entry is affected, and the hit basis must be recorded):
 
@@ -463,14 +540,16 @@ Change file set = **committed part** ∪ **working-tree part**:
 
 **Step 3: Reach the conclusion**
 
-Any layer hit and the entry was not re-verified in this run → set freshness to `⚠ Possibly Stale`; no layer hit → freshness is `Current`.
+- Any layer hit and the entry was not re-verified in this run → set freshness to `⚠ Possibly Stale`; no layer hit → freshness is `Current`.
+- **But both advancing the formal baseline and marking `Current` require a clean working tree**: when `git status --porcelain` produces output (`Dirty`), `last_verified_commit` must not be advanced and nothing may be marked `Current`; the freshness status is `Provisional Working-Tree Analysis`.
+- A `Dirty` working tree affects only **baseline advancement** and the **`Current` marker**, never analysis or answers: the entry can still be analyzed, answered from, and updated.
 
 Supporting commands: `git rev-parse HEAD` (current baseline), `git log --oneline <base>..HEAD` (change overview), `git status --porcelain` (uncommitted changes), `git rev-list --count HEAD` (fourth part of the version number), `git log -1 --format=%an` (Git commit author).
 
 ### 4.3 The two fields are independent
 
 - Evidence status and freshness status are **two mutually independent fields** that **must never be conflated or written merged**: `Verified` means "the implementation was read at the time", not that the content is still fresh; `⚠ Possibly Stale` means "the code has changed", not that the original evidence was wrong.
-- The knowledge map shows them in **two separate columns**: `| ID | Business Capability | Description | Evidence Status | Freshness Status |`; the evidence status column holds only one of the four values, and the freshness status column holds only one of the three values.
+- The knowledge map shows them in **two separate columns**: `| ID | Business Capability | Description | Evidence Status | Freshness Status |`; the evidence status column holds only one of the four values, and the freshness status column holds only one of the four values.
 - **Never** merge the two statuses into one column or one line: do not join the evidence status and the freshness status with a prefix, a slash, parentheses, or similar — each must occupy its own column or its own section.
 - Inside a BL entry the two are likewise written in separate sections: "13. Evidence Status" and "14. Freshness Status".
 
@@ -482,16 +561,22 @@ Supporting commands: `git rev-parse HEAD` (current baseline), `git log --oneline
 
 ### 4.5 Incremental maintenance baseline
 
-- **Global baseline**: written in the "Verification Baseline" section of `00-Project Knowledge Map.md`, with the fields `last_verified_commit` + verification date.
-- **Per-entry baseline**: written in the "Last Verified Version" section of each BL entry, with the fields Git commit + verification date.
+- **Global baseline**: written in the "Verification Baseline" section of `00-Project Knowledge Map.md`, with the fields `last_verified_commit` + verification date + `Working tree status` + `Verification status` + `Formal baseline`.
+- **Per-entry baseline**: written in the "Last Verified Version" section of each BL entry, with the fields Git commit + verification date + working tree status.
+- **Advance the baseline only while the working tree is clean**, determined with `git status --porcelain`:
+  - Working tree `Clean` (no output): you may advance `last_verified_commit` and the `Formal baseline` after re-verification, and mark the re-verified entries `Current`.
+  - Working tree `Dirty` (output present): you may analyze, answer, and update BL content, but you **must not advance `last_verified_commit`** and **must not mark anything `Current`**; the entry's freshness status is `Provisional Working-Tree Analysis`, and the entry's "Last Verified Version" keeps the formal baseline commit and appends the line "This analysis is based on an uncommitted working tree; the formal baseline was not advanced."
+  - **Rationale**: a BL may have been generated from **uncommitted working-tree code**; if the user later discards those changes with `git restore`, HEAD is unchanged and the working tree is clean again, yet the BL describes an implementation that **no longer exists** while the system still considers it "current".
 - During an incremental update, re-verify only the affected entries (determined by the multi-layer analysis in 4.2); keep the "Last Verified Version" of unaffected entries at its original value instead of refreshing it to the current HEAD.
 - After every incremental analysis, record in "Most Recent Incremental Analysis" of the knowledge map's "Verification Baseline" section: baseline commit, analysis date, changed-file count (including uncommitted), affected BL, re-verified BL, and BL still marked stale.
-- The change file set must include uncommitted changes (`git status --porcelain`); **never compare only `<base>..HEAD`**.
+- The change file set must include uncommitted changes (`git status --porcelain`); **never compare only `<base>..HEAD`**. This is an **impact detection** rule and does not conflict with the **baseline advancement** rule above ("advance the baseline only while the working tree is clean") — see 4.2 steps 1 and 3.
 
 ### 4.6 Prohibitions
 
 - **Never package model inference as fact**: inferred content must be explicitly labeled `Status: Inferred` with its basis, and assertive wording such as "the system will" or "it must be" is not allowed.
 - Do not fabricate business facts, commit hashes, table names, APIs, test cases, or business rules; freshness determination must come from real Git command output, and **fabricating a commit hash in a freshness determination is prohibited**.
+- **Never advance the formal baseline or mark anything `Current` on a `Dirty` working tree**: uncommitted changes may be discarded by `git restore`, at which point the BL describes an implementation that no longer exists (see 4.5).
+- **Never reuse a retired BL ID**: deletion means tombstone, IDs are always assigned as "historical highest ID + 1", and the knowledge map's "ID Registry" must be updated in the same run (see 3.1).
 - Do not delete the existing 7 document templates, perform large-scale renames, or introduce runtime dependencies; do not introduce a database, web UI, RAG, or vector database.
 
 ---
@@ -527,6 +612,6 @@ Supporting commands: `git rev-parse HEAD` (current baseline), `git log --oneline
 
 ## 6. Example Content Labeling Rules
 
-- All examples in the templates of this file (including the "cancel order" call chain, the source index example rows, `src/order/service.ts` → `cancelOrder()`, `orders.status: PENDING_PAYMENT → CANCELLED`, and the test file example) are **Example (placeholder, not project fact)**.
+- All examples in the templates of this file (including the "cancel order" call chain, the source index example rows, the ID registry example rows, the external dependencies / resources example rows, the tests → BL example row, `src/order/service.ts` → `cancelOrder()`, `orders.status: PENDING_PAYMENT → CANCELLED`, and the test file example) are **Example (placeholder, not project fact)**.
 - In generated documents, wherever example content remains, the label line must remain as well: `> Example (placeholder, not project fact). Replace it with real analysis results when generating documents.`
 - Replace examples with real analysis results during generation; **never** write template examples into a delivered document as project facts.
