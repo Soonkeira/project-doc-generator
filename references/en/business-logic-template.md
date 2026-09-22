@@ -1,4 +1,4 @@
-# Project Knowledge Layer Templates (v1.4.1)
+# Project Knowledge Layer Templates (v1.4.2)
 
 > **Positioning**: The knowledge layer is the core; the 7 traditional documents (01–07) are only different presentation views of the knowledge layer. The 7 document templates are in `references/en/document-templates.md`, and their file names, numbering, and paths remain unchanged.
 >
@@ -77,7 +77,7 @@
 | traditional_docs_working_tree | `Clean` / `Dirty` / `Not Found (no Git)` |
 | traditional_docs_generated_from_commit | `<commit hash at which the 7 traditional documents were generated>` |
 
-> **The verification baseline advances only while the working tree is clean**: while the working tree is `Dirty` you may analyze, answer questions, and update BL content, but you **must not advance `last_verified_commit`** and **must not mark an entry `Current`**; that entry's freshness status is `Provisional Working-Tree Analysis`. Rationale: a BL may have been generated from **uncommitted working-tree code**; if the user later discards those changes with `git restore`, HEAD is unchanged and the working tree is clean again, yet the BL describes an implementation that **no longer exists** while the system still considers it "current".
+> **The verification baseline advances only while the working tree is clean**: while the working tree is `Dirty` you may analyze, answer questions, and update BL content, but you **must not advance `last_verified_commit`** and **must not mark an entry `Current`**; that entry's freshness status is `Provisional Working-Tree Analysis`. Once the working tree becomes `Clean` again, those `Provisional Working-Tree Analysis` entries must unconditionally re-enter this run's affected set and be re-verified against the source; until all of them are re-verified they must not be marked `Current` and the formal baseline must not be advanced (see 4.2 step 4). Rationale: a BL may have been generated from **uncommitted working-tree code**; if the user later discards those changes with `git restore`, HEAD is unchanged and the working tree is clean again, yet the BL describes an implementation that **no longer exists** while the system still considers it "current".
 >
 > **Traditional document freshness**: sync mode does **not** update the 7 traditional documents, so after a sync (and once the code has changed) `traditional_docs_status` must be `outdated` until generation mode is run again, which returns it to `current`. The three values of `traditional_docs_status`: `current` = the traditional documents were generated from a **Clean** working tree and the knowledge layer has found no code change newer than them; `outdated` = the code / knowledge layer has already changed but the 7 traditional documents have not been regenerated; `provisional` = the traditional documents were generated on a **Dirty** working tree, so their content may include uncommitted code and **the HEAD commit must not be treated as their only source**. Generation mode: Clean → `current` + `traditional_docs_working_tree` = `Clean`; Dirty → `provisional` + `traditional_docs_working_tree` = `Dirty`; sync mode (code changed but 01–07 not regenerated) → `outdated`; re-running generation mode follows the same Clean / Dirty rule.
 > `traditional_docs_status` / `traditional_docs_generated_from_commit` / `traditional_docs_working_tree` are **all recorded in `00-Project Knowledge Map.md`**; **`00-Project Knowledge Map.md` = the document status center**. Documents 01–07 remain generated artifacts and sync mode **does not modify** them, keeping sync mode lightweight; to tell whether the traditional documents are up to date, read these three fields in the knowledge map.
@@ -443,11 +443,23 @@ OrderRepository.save()
 `Current` / `⚠ Possibly Stale` / `Provisional Working-Tree Analysis` / `Not Found (no Git baseline)` (choose exactly one; freshness status is determined from Git change detection together with the source map and multi-layer impact analysis)
 
 ## 15. Last Verified Version
-- Git commit: `<commit hash>`
+- Git commit: `<commit hash>` / `not established (Git exists, but no formal baseline has been established yet)` / `Not Found (no Git baseline)`
 - Verification date: YYYY-MM-DD
 - Working tree status: `Clean` / `Dirty`
 
+> Git commit takes exactly one of three values: `<commit hash>` (branch C, a formal baseline exists) / `not established (Git exists, but no formal baseline has been established yet)` (branch B, Git exists but no formal baseline has been established yet) / `Not Found (no Git baseline)` (branch A, no Git or no valid HEAD).
 > While the working tree is `Dirty`, **keep the formal baseline commit** (do not advance it) and append the line: "This analysis is based on an uncommitted working tree; the formal baseline was not advanced."
+> **When no formal baseline has been established you must not fill in or fabricate a commit, and you must not miswrite it as `Not Found (no Git baseline)` (Git really does exist; the two must be distinguished)** (see the "Verification Baseline" section and 4.4).
+
+The complete form for branch B (Git exists, but no formal baseline has been established yet):
+
+```markdown
+## 15. Last Verified Version
+- Git commit: not established (Git exists, but no formal baseline has been established yet)
+- Verification date: YYYY-MM-DD
+- Working tree status: Dirty
+- Note: this analysis is based on an uncommitted working tree; the formal baseline was not advanced.
+```
 ````
 
 ### 3.4 Filling requirements and good/bad examples per section
@@ -472,7 +484,7 @@ The header metadata block (project name / business domain / author / date / vers
 | 12 | Related Business Logic | Related BL IDs and names (upstream triggers, downstream dependencies, shared data). |
 | 13 | Evidence Status | Choose exactly one: `Verified` / `Partially Verified` / `Inferred` / `Not Found`, judged by the model. |
 | 14 | Freshness Status | **Freshness status is determined from Git change detection together with the source map and multi-layer impact analysis**; choose exactly one: `Current` / `⚠ Possibly Stale` / `Provisional Working-Tree Analysis` / `Not Found (no Git baseline)`; **never write it merged with the evidence status**, and never substitute a model judgment for Git change detection plus multi-layer impact analysis. |
-| 15 | Last Verified Version | Git commit + verification date + working tree status (per-entry baseline); while the working tree is `Dirty` keep the formal baseline commit and append the line "This analysis is based on an uncommitted working tree; the formal baseline was not advanced"; write "Not Found (no Git baseline)" when there is no Git. |
+| 15 | Last Verified Version | Git commit (exactly one of three: `<commit hash>` / `not established (Git exists, but no formal baseline has been established yet)` / `Not Found (no Git baseline)`) + verification date + working tree status (per-entry baseline); while the working tree is `Dirty` keep the formal baseline commit and append the line "This analysis is based on an uncommitted working tree; the formal baseline was not advanced"; when no formal baseline has been established (branch B) write `not established (Git exists, but no formal baseline has been established yet)`, and **never fabricate a commit or miswrite it as `Not Found (no Git baseline)`**; when there is no Git (branch A) write "Not Found (no Git baseline)". |
 
 **How to write section 5, "Core Execution Flow"**:
 
@@ -573,6 +585,21 @@ Change file set = **committed part** ∪ **working-tree part**:
 - **But both advancing the formal baseline and marking `Current` require a clean working tree**: when `git status --porcelain` produces output (`Dirty`), `last_verified_commit` must not be advanced and nothing may be marked `Current`; the freshness status is `Provisional Working-Tree Analysis`.
 - A `Dirty` working tree affects only **baseline advancement** and the **`Current` marker**, never analysis or answers: the entry can still be analyzed, answered from, and updated.
 
+**Step 4: Mandatory recovery of provisional entries (while the working tree is `Clean`; always required)**
+
+The affected BL set must be the **union**, not merely the hits of the impact analysis:
+
+```text
+affected BL =
+  BLs hit by impact analysis (Git change detection + source map + multi-layer determination)
+  ∪ all BLs whose freshness_status = Provisional Working-Tree Analysis (while the current working tree is Clean)
+```
+
+- **Whenever a BL's current freshness status is `Provisional Working-Tree Analysis`, then once the working tree later becomes `Clean` that BL must unconditionally join this run's affected set and be re-verified by reading the current source, regardless of whether a `<baseline>..HEAD` diff exists.**
+- Before **all** of these provisional BLs have been re-verified: **must not mark them `Current`**, **must not treat the knowledge layer as consistent again**, and **must not advance the formal baseline**.
+- After re-verification, assign the status that matches reality: content consistent with the current `Clean` source → `Current`; cannot be confirmed → record `Partially Verified` / `Inferred` / `⚠ Possibly Stale` as appropriate; refresh `00-Source Index.md` in the same run.
+- **Why this is necessary (the `git restore` scenario)**: formal baseline = `abc123` → code is modified in the working tree (`Dirty`) → after a sync the BL body is updated from the `Dirty` code and its freshness status is `Provisional Working-Tree Analysis` → the user discards the changes with `git restore` → HEAD is still `abc123`, the working tree is `Clean` again, and `git diff abc123..HEAD` is empty. The BL body may still describe temporary code that no longer exists, and the regular Git impact analysis **cannot detect it** (there is no diff); only this rule, which forces `Provisional Working-Tree Analysis` entries back into the affected set, can find and fix that kind of knowledge pollution.
+
 Supporting commands: `git rev-parse HEAD` (current baseline), `git log --oneline <base>..HEAD` (change overview), `git status --porcelain` (uncommitted changes), `git rev-list --count HEAD` (fourth part of the version number), `git log -1 --format=%an` (Git commit author).
 
 ### 4.3 The two fields are independent
@@ -595,9 +622,10 @@ Supporting commands: `git rev-parse HEAD` (current baseline), `git log --oneline
 - **Per-entry baseline**: written in the "Last Verified Version" section of each BL entry, with the fields Git commit + verification date + working tree status.
 - **Advance the baseline only while the working tree is clean**, determined with `git status --porcelain`:
   - Working tree `Clean` (no output): you may advance `last_verified_commit` and the `Formal baseline` after re-verification, and mark the re-verified entries `Current`.
-  - Working tree `Dirty` (output present): you may analyze, answer, and update BL content, but you **must not advance `last_verified_commit`** and **must not mark anything `Current`**; the entry's freshness status is `Provisional Working-Tree Analysis`, and the entry's "Last Verified Version" keeps the formal baseline commit and appends the line "This analysis is based on an uncommitted working tree; the formal baseline was not advanced."
+  - Working tree `Dirty` (output present): you may analyze, answer, and update BL content, but you **must not advance `last_verified_commit`** and **must not mark anything `Current`**; the entry's freshness status is `Provisional Working-Tree Analysis`, and the entry's "Last Verified Version" keeps the formal baseline commit (in branch B, where no formal baseline exists yet, write `not established (Git exists, but no formal baseline has been established yet)`; **never fabricate a commit**) and appends the line "This analysis is based on an uncommitted working tree; the formal baseline was not advanced."
   - **Rationale**: a BL may have been generated from **uncommitted working-tree code**; if the user later discards those changes with `git restore`, HEAD is unchanged and the working tree is clean again, yet the BL describes an implementation that **no longer exists** while the system still considers it "current".
 - During an incremental update, re-verify only the affected entries (determined by the multi-layer analysis in 4.2); keep the "Last Verified Version" of unaffected entries at its original value instead of refreshing it to the current HEAD.
+- **The affected set must include every `Provisional Working-Tree Analysis` entry**: while the working tree is `Clean`, this run's affected set = BLs hit by the impact analysis ∪ all BLs whose freshness status is still `Provisional Working-Tree Analysis` (see 4.2 step 4); **`last_verified_commit` must not be advanced until all of them have been re-verified**, and they must not be marked `Current` or treated as a consistent knowledge layer.
 - **While no formal baseline has been established (branch B), perform no incremental diff of the form `<base>..HEAD`** (there is no valid `<base>`); a **full re-verification** is mandatory: working tree `Clean` → after the re-verification, establish the formal baseline (`last_verified_commit` = `Formal baseline` = current HEAD, `Verification status` = `Formal baseline`, `Working tree status` = `Clean`, and the entries verified in this run = `Current`); working tree `Dirty` → keep `last_verified_commit` and `Formal baseline` at `not established` and `Verification status` at `Provisional working-tree analysis`, and **do not establish a formal baseline or mark anything `Current`**.
 - After every incremental analysis, record in "Most Recent Incremental Analysis" of the knowledge map's "Verification Baseline" section: baseline commit, analysis date, changed-file count (including uncommitted), affected BL, re-verified BL, and BL still marked stale.
 - The change file set must include uncommitted changes (`git status --porcelain`); **never compare only `<base>..HEAD`**. This is an **impact detection** rule and does not conflict with the **baseline advancement** rule above ("advance the baseline only while the working tree is clean") — see 4.2 steps 1 and 3.
@@ -607,6 +635,8 @@ Supporting commands: `git rev-parse HEAD` (current baseline), `git log --oneline
 - **Never package model inference as fact**: inferred content must be explicitly labeled `Status: Inferred` with its basis, and assertive wording such as "the system will" or "it must be" is not allowed.
 - Do not fabricate business facts, commit hashes, table names, APIs, test cases, or business rules; freshness determination must come from real Git command output, and **fabricating a commit hash in a freshness determination is prohibited**.
 - **Never advance the formal baseline or mark anything `Current` on a `Dirty` working tree**: uncommitted changes may be discarded by `git restore`, at which point the BL describes an implementation that no longer exists (see 4.5).
+- **Never mark anything `Current` while un-re-verified `Provisional Working-Tree Analysis` entries exist**: once the working tree becomes `Clean`, those entries must unconditionally re-enter the affected set and be re-verified against the source (see 4.2 step 4); before all of them are re-verified you **must not mark them `Current`**, **must not treat the knowledge layer as consistent again**, and **must not advance the formal baseline**.
+- **Never fabricate a commit when no formal baseline has been established, and never miswrite it as `Not Found (no Git baseline)`**: for branch B (Git exists, but no formal baseline has been established yet) the "Last Verified Version" reads `not established (Git exists, but no formal baseline has been established yet)` (see 3.4 section 15, the "Verification Baseline" section, and 4.4).
 - **Never reuse a retired BL ID**: deletion means tombstone, IDs are always assigned as "historical highest ID + 1", and the knowledge map's "ID Registry" must be updated in the same run (see 3.1).
 - **It is strictly prohibited** to write "Git exists but no formal baseline has been established" (branch B) as `Not Found (no Git baseline)`: Git really does exist and only the formal baseline is not established yet, so the two must be distinguished (see the "Verification Baseline" section and 4.4).
 - Do not delete the existing 7 document templates, perform large-scale renames, or introduce runtime dependencies; do not introduce a database, web UI, RAG, or vector database.

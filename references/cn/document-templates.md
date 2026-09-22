@@ -483,7 +483,7 @@ public ReturnType MethodName(ParamType param)
 
 ## 项目知识层模板
 
-以上 7 套传统文档模板**保持不变**（文件名、编号、路径不重命名、不删除），它们是知识层的展示视图；项目知识层模板（v1.2.0 引入、v1.4.1 扩展）见 **`references/cn/business-logic-template.md`**：
+以上 7 套传统文档模板**保持不变**（文件名、编号、路径不重命名、不删除），它们是知识层的展示视图；项目知识层模板（v1.2.0 引入、v1.4.1 / v1.4.2 扩展）见 **`references/cn/business-logic-template.md`**：
 
 | 模板 | 输出路径 |
 |------|----------|
@@ -496,5 +496,7 @@ public ReturnType MethodName(ParamType param)
 知识层现在包含**双向索引**：知识地图（业务能力 → BL）与源码索引（源码 → BL），两者必须与 BL 条目一致。源码索引含**六张反向索引表**（源码文件与符号、数据表/迁移、API/入口、配置项、**外部依赖/资源**、**测试** → BL）；知识地图含**编号登记（ID Registry）**与**验证基线**（`last_verified_commit`、工作区状态 / 验证状态 / 正式基线，以及传统文档新鲜度 `traditional_docs_status` / `traditional_docs_generated_from_commit`）。
 
 传统文档状态（v1.4.1）：`traditional_docs_status` 为**三值** —— `current` / `outdated` / `provisional`（`provisional` = 传统文档在 Dirty 工作区下生成，内容可能含未提交代码）；另有 `traditional_docs_working_tree`（`Clean` / `Dirty` / `未发现（无 Git）`）；三者统一记录在 `00-项目知识地图.md`（文档状态中心），**01–07 不加独立 stale 字段**，同步模式不修改 01–07。增量维护区分三种互斥状态：无 Git / 有 Git 但正式基线未建立（`未建立`，不执行 `<base>..HEAD` diff，做全量复核）/ 已有正式基线。
+
+Provisional BL 强制恢复（v1.4.2）：某 BL 时效状态为 `临时工作区分析` 时，工作区一旦恢复 `Clean`，该条**必须无条件加入本轮 affected set 并重新读取当前源码验证**（不依赖 `<base>..HEAD` 是否存在 diff——`git restore` 场景下没有 diff，常规影响分析发现不了），全部重验完成前不得标记 `最新`、不得认为知识层已恢复一致、不得推进正式基线。BL 条目第 15 节的 `Git commit` 取值域为三选一：`<commit 哈希>` / `未建立（有 Git，但尚未建立正式基线）` / `未发现（无 Git 基线）`，后两者必须区分、不得混用。
 
 > 知识层是核心，7 套文档是知识层的展示视图。知识地图必须以业务能力索引为主体，禁止只写项目简介。
