@@ -1,4 +1,4 @@
-# Project Knowledge Layer Templates (v1.4.0)
+# Project Knowledge Layer Templates (v1.4.1)
 
 > **Positioning**: The knowledge layer is the core; the 7 traditional documents (01–07) are only different presentation views of the knowledge layer. The 7 document templates are in `references/en/document-templates.md`, and their file names, numbering, and paths remain unchanged.
 >
@@ -73,12 +73,35 @@
 | Formal baseline | `<commit hash>` (advanced after re-verification only while the working tree is `Clean`; kept at the previous formal baseline, not advanced, while `Dirty`) |
 | Freshness determination available | Yes |
 | Freshness determination method | Change file set (committed part `git diff --name-status -M <last_verified_commit>..HEAD` ∪ working-tree part `git status --porcelain`) matched against each BL entry's "Source Evidence", "Core Execution Flow", "Data Changes", "Trigger Entry Points", "External Impacts", "Preconditions", and "Related Tests" through the multi-layer impact analysis (see section 4.2) |
-| traditional_docs_status | `current` / `outdated` |
+| traditional_docs_status | `current` / `outdated` / `provisional` |
+| traditional_docs_working_tree | `Clean` / `Dirty` / `Not Found (no Git)` |
 | traditional_docs_generated_from_commit | `<commit hash at which the 7 traditional documents were generated>` |
 
 > **The verification baseline advances only while the working tree is clean**: while the working tree is `Dirty` you may analyze, answer questions, and update BL content, but you **must not advance `last_verified_commit`** and **must not mark an entry `Current`**; that entry's freshness status is `Provisional Working-Tree Analysis`. Rationale: a BL may have been generated from **uncommitted working-tree code**; if the user later discards those changes with `git restore`, HEAD is unchanged and the working tree is clean again, yet the BL describes an implementation that **no longer exists** while the system still considers it "current".
 >
-> **Traditional document freshness**: sync mode does **not** update the 7 traditional documents, so after a sync (and once the code has changed) `traditional_docs_status` must be `outdated` until generation mode is run again, which returns it to `current`.
+> **Traditional document freshness**: sync mode does **not** update the 7 traditional documents, so after a sync (and once the code has changed) `traditional_docs_status` must be `outdated` until generation mode is run again, which returns it to `current`. The three values of `traditional_docs_status`: `current` = the traditional documents were generated from a **Clean** working tree and the knowledge layer has found no code change newer than them; `outdated` = the code / knowledge layer has already changed but the 7 traditional documents have not been regenerated; `provisional` = the traditional documents were generated on a **Dirty** working tree, so their content may include uncommitted code and **the HEAD commit must not be treated as their only source**. Generation mode: Clean → `current` + `traditional_docs_working_tree` = `Clean`; Dirty → `provisional` + `traditional_docs_working_tree` = `Dirty`; sync mode (code changed but 01–07 not regenerated) → `outdated`; re-running generation mode follows the same Clean / Dirty rule.
+> `traditional_docs_status` / `traditional_docs_generated_from_commit` / `traditional_docs_working_tree` are **all recorded in `00-Project Knowledge Map.md`**; **`00-Project Knowledge Map.md` = the document status center**. Documents 01–07 remain generated artifacts and sync mode **does not modify** them, keeping sync mode lightweight; to tell whether the traditional documents are up to date, read these three fields in the knowledge map.
+
+**Three baseline states must be distinguished (three mutually exclusive branches)**:
+
+- **Branch A — no Git (or invalid HEAD)**: use the "Degraded form when there is no Git or no valid HEAD" below; record freshness as `Not Found (no Git baseline)`; every run requires a **full re-verification**; **never fabricate a commit hash**.
+- **Branch B — Git exists, but no formal baseline has been established yet** (`last_verified_commit` is empty / `Formal baseline` = `not established`): see "Branch B values" below.
+- **Branch C — a formal baseline already exists**: normal incremental sync (see 4.2 and 4.5).
+
+**Branch B values (Example (placeholder, not project fact))**:
+
+| Field | Value |
+|-------|-------|
+| last_verified_commit | not established |
+| Formal baseline | not established |
+| Verification status | `Provisional working-tree analysis` |
+| Working tree status | `Dirty` |
+
+> **Branch B performs no incremental diff of the form `<base>..HEAD`** (there is no valid `<base>` at this point) and must perform a **full re-verification**:
+> - Working tree **`Clean`** → after the full re-verification, establish the formal baseline: `last_verified_commit` = current HEAD, `Formal baseline` = current HEAD, `Verification status` = `Formal baseline`, `Working tree status` = `Clean`, and the entries verified in this run = `Current`.
+> - Working tree **`Dirty`** → keep `Verification status` = `Provisional working-tree analysis` and `Working tree status` = `Dirty`; keep `last_verified_commit` and `Formal baseline` at `not established`; **do not establish a formal baseline and do not mark anything `Current`**.
+>
+> **It is strictly prohibited** to write "Git exists but no formal baseline has been established" as `Not Found (no Git baseline)` — Git really does exist, and the two situations must be distinguished.
 
 ### Most Recent Incremental Analysis
 
@@ -102,7 +125,8 @@
 | Formal baseline | Not Found (no Git baseline) |
 | Freshness determination available | No |
 | Freshness determination method | No freshness determination; every run requires a full re-verification |
-| traditional_docs_status | Not Found (no Git baseline) |
+| traditional_docs_status | Not Found (no Git baseline) (none of `current` / `outdated` / `provisional` can be determined) |
+| traditional_docs_working_tree | Not Found (no Git) |
 | traditional_docs_generated_from_commit | Not Found (no Git baseline) |
 | Most recent incremental analysis | Not Found (no Git baseline, no incremental analysis) |
 
@@ -167,9 +191,10 @@
 ### 1.3 Filling requirements
 
 - The **Analysis Scope** must reflect what was actually scanned: whatever is listed as scanned must really have been read, and the reason for skipping sensitive files and dependency directories must be stated.
-- The **Verification Baseline** is the global baseline; `last_verified_commit`, the verification date, and the "Most Recent Incremental Analysis" must come from real Git command output and real analysis results (the changed-file count includes uncommitted changes). Without Git, use the degraded form and state explicitly that "every run requires a full re-verification".
+- The **Verification Baseline** is the global baseline; `last_verified_commit`, the verification date, and the "Most Recent Incremental Analysis" must come from real Git command output and real analysis results (the changed-file count includes uncommitted changes). Without Git, use the degraded form and state explicitly that "every run requires a full re-verification"; **when Git exists but no formal baseline has been established (branch B), a full re-verification is mandatory and no incremental diff of the form `<base>..HEAD` may be performed** (see the branch notes in the "Verification Baseline" section).
 - **The verification baseline advances only while the working tree is clean**: run `git status --porcelain` first to determine the `Working tree status` (empty output = `Clean`, any output = `Dirty`). While `Clean`, you may advance `last_verified_commit` and the `Formal baseline` after re-verification and mark the re-verified entries `Current`; while `Dirty`, you **must not advance `last_verified_commit`** and **must not mark anything `Current`**, and the `Verification status` is `Provisional working-tree analysis`.
-- **Traditional document freshness**: `traditional_docs_status` holds `current` / `outdated`, and `traditional_docs_generated_from_commit` holds the commit at which the 7 traditional documents were generated. Sync mode does not update the 7 traditional documents, so after a sync (and once the code has changed) it must be `outdated` until generation mode is run again, which returns it to `current`.
+- **Traditional document freshness**: `traditional_docs_status` holds one of three values — `current` (the traditional documents were generated from a **Clean** working tree and the knowledge layer has found no code change newer than them) / `outdated` (the code / knowledge layer has already changed but the 7 traditional documents have not been regenerated) / `provisional` (the traditional documents were generated on a **Dirty** working tree, so their content may include uncommitted code and **the HEAD commit must not be treated as their only source**); `traditional_docs_working_tree` holds `Clean` / `Dirty` / `Not Found (no Git)`; `traditional_docs_generated_from_commit` holds the commit at which the 7 traditional documents were generated. Generation mode: Clean → `current` + `Clean`, Dirty → `provisional` + `Dirty`; sync mode does not update the 7 traditional documents, so after a sync (and once the code has changed) it must be `outdated` until generation mode is run again, which returns it to `current`.
+- **Traditional document status is maintained only in the knowledge map**: `traditional_docs_status` / `traditional_docs_generated_from_commit` / `traditional_docs_working_tree` are **all recorded in `00-Project Knowledge Map.md`**; **`00-Project Knowledge Map.md` = the document status center**. Documents 01–07 remain generated artifacts and sync mode **does not modify** them, keeping sync mode lightweight; to tell whether the traditional documents are up to date, read these three fields in the knowledge map, and **do not add a separate stale field to 01–07**.
 - The **ID Registry** must stay consistent with the business capability index and the BL entries: `Current highest ID` is the historical highest BL ID (the historical maximum including retired IDs), `Next available ID` = current highest ID + 1, and `Retired IDs` lists every tombstone individually with its retirement date. A retired ID must not appear in the business capability index at the same time (this table is Example (placeholder, not project fact); replace it with real IDs when generating).
 - The **Business Capability Index** is grouped by business domain, one table per group, with the fixed columns `| ID | Business Capability | Description | Evidence Status | Freshness Status |`. Do not add, remove, or rename columns, and do not merge the two statuses into one column.
 - **The Business Capability Index is displayed grouped by business domain**: a group heading holds only the business domain name and **must not carry any number range**; the business domain must match the `**Business Domain**` field in the header of each BL entry.
@@ -415,7 +440,7 @@ OrderRepository.save()
 `Verified` / `Partially Verified` / `Inferred` / `Not Found` (choose exactly one; judged by the model)
 
 ## 14. Freshness Status
-`Current` / `⚠ Possibly Stale` / `Provisional Working-Tree Analysis` / `Not Found (no Git baseline)` (choose exactly one; determined mechanically from Git)
+`Current` / `⚠ Possibly Stale` / `Provisional Working-Tree Analysis` / `Not Found (no Git baseline)` (choose exactly one; freshness status is determined from Git change detection together with the source map and multi-layer impact analysis)
 
 ## 15. Last Verified Version
 - Git commit: `<commit hash>`
@@ -446,7 +471,7 @@ The header metadata block (project name / business domain / author / date / vers
 | 11 | Related Tests | Real test files and test methods; when there are none, write "No corresponding automated tests found." **Fabricating tests is prohibited.** |
 | 12 | Related Business Logic | Related BL IDs and names (upstream triggers, downstream dependencies, shared data). |
 | 13 | Evidence Status | Choose exactly one: `Verified` / `Partially Verified` / `Inferred` / `Not Found`, judged by the model. |
-| 14 | Freshness Status | Determined mechanically from Git, choose exactly one: `Current` / `⚠ Possibly Stale` / `Provisional Working-Tree Analysis` / `Not Found (no Git baseline)`; **never write it merged with the evidence status**, and never substitute a model judgment for the Git determination. |
+| 14 | Freshness Status | **Freshness status is determined from Git change detection together with the source map and multi-layer impact analysis**; choose exactly one: `Current` / `⚠ Possibly Stale` / `Provisional Working-Tree Analysis` / `Not Found (no Git baseline)`; **never write it merged with the evidence status**, and never substitute a model judgment for Git change detection plus multi-layer impact analysis. |
 | 15 | Last Verified Version | Git commit + verification date + working tree status (per-entry baseline); while the working tree is `Dirty` keep the formal baseline commit and append the line "This analysis is based on an uncommitted working tree; the formal baseline was not advanced"; write "Not Found (no Git baseline)" when there is no Git. |
 
 **How to write section 5, "Core Execution Flow"**:
@@ -500,7 +525,11 @@ OrderRepository.save()
 
 ### 4.2 Freshness status
 
-**Determined mechanically from Git, not judged by the model**; only four values exist:
+**Freshness status is determined from Git change detection together with the source map and multi-layer impact analysis** — it is neither a purely mechanical Git determination nor a purely model-based judgment; only four values exist:
+
+- **Git is responsible for Change Detection**: HEAD, baseline, the change file set, renames/deletions, and the `Clean`/`Dirty` working tree — purely mechanical results.
+- **Impact analysis is responsible for Impact Analysis**: symbol impact, API impact, data impact, configuration impact, and call-chain impact — not a purely Git-based judgment.
+- **Together they produce the Freshness Status**.
 
 | Freshness status | Meaning |
 |------------------|---------|
@@ -555,6 +584,7 @@ Supporting commands: `git rev-parse HEAD` (current baseline), `git log --oneline
 
 ### 4.4 Degradation without Git or without a valid HEAD
 
+- **This section applies only to branch A (no Git or no valid HEAD)**: Git existing while no formal baseline has been established yet (`last_verified_commit` / `Formal baseline` = `not established`) is **branch B**; it requires a full re-verification and keeps `Provisional working-tree analysis`, and writing it as `Not Found (no Git baseline)` is **strictly prohibited**.
 - Perform no freshness determination; record freshness as `Not Found (no Git baseline)`.
 - State in the "Verification Baseline" section of the knowledge map that freshness determination is unavailable and that **every run requires a full re-verification**.
 - **Never fabricate a commit hash**, and never substitute a date or a file timestamp for a commit.
@@ -568,6 +598,7 @@ Supporting commands: `git rev-parse HEAD` (current baseline), `git log --oneline
   - Working tree `Dirty` (output present): you may analyze, answer, and update BL content, but you **must not advance `last_verified_commit`** and **must not mark anything `Current`**; the entry's freshness status is `Provisional Working-Tree Analysis`, and the entry's "Last Verified Version" keeps the formal baseline commit and appends the line "This analysis is based on an uncommitted working tree; the formal baseline was not advanced."
   - **Rationale**: a BL may have been generated from **uncommitted working-tree code**; if the user later discards those changes with `git restore`, HEAD is unchanged and the working tree is clean again, yet the BL describes an implementation that **no longer exists** while the system still considers it "current".
 - During an incremental update, re-verify only the affected entries (determined by the multi-layer analysis in 4.2); keep the "Last Verified Version" of unaffected entries at its original value instead of refreshing it to the current HEAD.
+- **While no formal baseline has been established (branch B), perform no incremental diff of the form `<base>..HEAD`** (there is no valid `<base>`); a **full re-verification** is mandatory: working tree `Clean` → after the re-verification, establish the formal baseline (`last_verified_commit` = `Formal baseline` = current HEAD, `Verification status` = `Formal baseline`, `Working tree status` = `Clean`, and the entries verified in this run = `Current`); working tree `Dirty` → keep `last_verified_commit` and `Formal baseline` at `not established` and `Verification status` at `Provisional working-tree analysis`, and **do not establish a formal baseline or mark anything `Current`**.
 - After every incremental analysis, record in "Most Recent Incremental Analysis" of the knowledge map's "Verification Baseline" section: baseline commit, analysis date, changed-file count (including uncommitted), affected BL, re-verified BL, and BL still marked stale.
 - The change file set must include uncommitted changes (`git status --porcelain`); **never compare only `<base>..HEAD`**. This is an **impact detection** rule and does not conflict with the **baseline advancement** rule above ("advance the baseline only while the working tree is clean") — see 4.2 steps 1 and 3.
 
@@ -577,6 +608,7 @@ Supporting commands: `git rev-parse HEAD` (current baseline), `git log --oneline
 - Do not fabricate business facts, commit hashes, table names, APIs, test cases, or business rules; freshness determination must come from real Git command output, and **fabricating a commit hash in a freshness determination is prohibited**.
 - **Never advance the formal baseline or mark anything `Current` on a `Dirty` working tree**: uncommitted changes may be discarded by `git restore`, at which point the BL describes an implementation that no longer exists (see 4.5).
 - **Never reuse a retired BL ID**: deletion means tombstone, IDs are always assigned as "historical highest ID + 1", and the knowledge map's "ID Registry" must be updated in the same run (see 3.1).
+- **It is strictly prohibited** to write "Git exists but no formal baseline has been established" (branch B) as `Not Found (no Git baseline)`: Git really does exist and only the formal baseline is not established yet, so the two must be distinguished (see the "Verification Baseline" section and 4.4).
 - Do not delete the existing 7 document templates, perform large-scale renames, or introduce runtime dependencies; do not introduce a database, web UI, RAG, or vector database.
 
 ---

@@ -9,6 +9,8 @@
 >
 > Using a machine account name (`$env:USERNAME` / `whoami`) as the author is **strictly prohibited**.
 
+> **The version number rules in `SKILL.md` are the single authority**: with Git the version number is `1.{yy}.{Mdd}.{git commit count}`, without Git it is `1.{yy}.{Mdd}.{hmm}`; every `<dynamic version number>` in the templates must be replaced with the real version number computed by those rules when generating documents.
+
 ## 01-Requirement Specification Template
 
 ```markdown
@@ -17,13 +19,13 @@
 **Project Name**: XXX Project
 **Author**: <Author>
 **Date**: YYYY-MM-DD
-**Version**: V1.0
+**Version**: <dynamic version number>
 
 ## Change Log
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| V1.0 | YYYY-MM-DD | <Author> | Initial version |
+| <dynamic version number> | YYYY-MM-DD | <Author> | Initial version |
 
 ---
 
@@ -67,13 +69,13 @@
 **Project Name**: XXX Project
 **Author**: <Author>
 **Date**: YYYY-MM-DD
-**Version**: V1.0
+**Version**: <dynamic version number>
 
 ## Change Log
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| V1.0 | YYYY-MM-DD | <Author> | Initial version |
+| <dynamic version number> | YYYY-MM-DD | <Author> | Initial version |
 
 ---
 
@@ -289,13 +291,13 @@ Write-Host "Change log generated: $OutputFile"
 **Project Name**: XXX Project
 **Author**: <Author>
 **Date**: YYYY-MM-DD
-**Version**: V1.0
+**Version**: <dynamic version number>
 
 ## Change Log
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| V1.0 | YYYY-MM-DD | <Author> | Initial version |
+| <dynamic version number> | YYYY-MM-DD | <Author> | Initial version |
 
 ---
 
@@ -330,13 +332,13 @@ Table A → Table B → Table C
 **Project Name**: XXX Project
 **Author**: <Author>
 **Date**: YYYY-MM-DD
-**Version**: V1.0
+**Version**: <dynamic version number>
 
 ## Change Log
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| V1.0 | YYYY-MM-DD | <Author> | Initial version |
+| <dynamic version number> | YYYY-MM-DD | <Author> | Initial version |
 
 ---
 
@@ -383,13 +385,13 @@ public ReturnType MethodName(ParamType param)
 **Project Name**: XXX Project
 **Author**: <Author>
 **Date**: YYYY-MM-DD
-**Version**: V1.0
+**Version**: <dynamic version number>
 
 ## Change Log
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| V1.0 | YYYY-MM-DD | <Author> | Initial version |
+| <dynamic version number> | YYYY-MM-DD | <Author> | Initial version |
 
 ---
 
@@ -427,13 +429,13 @@ public ReturnType MethodName(ParamType param)
 **Project Name**: XXX Project
 **Author**: <Author>
 **Date**: YYYY-MM-DD
-**Version**: V1.0
+**Version**: <dynamic version number>
 
 ## Change Log
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| V1.0 | YYYY-MM-DD | <Author> | Initial version |
+| <dynamic version number> | YYYY-MM-DD | <Author> | Initial version |
 
 ---
 
@@ -481,7 +483,7 @@ public ReturnType MethodName(ParamType param)
 
 ## Project Knowledge Layer Templates
 
-The 7 traditional document templates above **remain unchanged** (file names, numbering, and paths are neither renamed nor deleted); they are presentation views of the knowledge layer. The project knowledge layer templates (introduced in v1.2.0, extended in v1.4.0) are in **`references/en/business-logic-template.md`**:
+The 7 traditional document templates above **remain unchanged** (file names, numbering, and paths are neither renamed nor deleted); they are presentation views of the knowledge layer. The project knowledge layer templates (introduced in v1.2.0, extended in v1.4.1) are in **`references/en/business-logic-template.md`**:
 
 | Template | Output path |
 |----------|-------------|
@@ -489,8 +491,10 @@ The 7 traditional document templates above **remain unchanged** (file names, num
 | Source index template | `Doc/<project-name>/en/00-Source Index.md` |
 | Business logic entry template | `Doc/<project-name>/en/business/BL-<NNN>-<business-name>.md` |
 
-That file also defines: the BL numbering rules (**increasing by historical highest ID + 1**; a deleted ID is a **permanent tombstone that is never reused**, **gaps are allowed**, and a stable ID takes priority; the business domain is metadata in the BL entry header, so reclassification never changes an ID), the BL granularity rules (a BL = a business capability or use case perceivable by users/business; CRUD does not default to one BL per endpoint), evidence status (`Verified` / `Partially Verified` / `Inferred` / `Not Found`), freshness (`Current` / `⚠ Possibly Stale` / `Provisional Working-Tree Analysis` / `Not Found (no Git baseline)`, determined mechanically from Git), the verification baseline, and traceability good/bad examples.
+That file also defines: the BL numbering rules (**increasing by historical highest ID + 1**; a deleted ID is a **permanent tombstone that is never reused**, **gaps are allowed**, and a stable ID takes priority; the business domain is metadata in the BL entry header, so reclassification never changes an ID), the BL granularity rules (a BL = a business capability or use case perceivable by users/business; CRUD does not default to one BL per endpoint), evidence status (`Verified` / `Partially Verified` / `Inferred` / `Not Found`), freshness (`Current` / `⚠ Possibly Stale` / `Provisional Working-Tree Analysis` / `Not Found (no Git baseline)`; freshness is determined from Git change detection together with the source map and multi-layer impact analysis), the verification baseline, and traceability good/bad examples.
 
 The knowledge layer now has **bidirectional indexes**: the knowledge map (business capability → BL) and the source index (source → BL); both must stay consistent with the BL entries. The source index contains **six reverse index tables** (source files and symbols, tables/migrations, APIs/entry points, configuration items, **external dependencies/resources**, and **tests** → BL); the knowledge map contains the **ID Registry** and the **verification baseline** (`last_verified_commit`, working-tree state / verification state / formal baseline, plus traditional document freshness `traditional_docs_status` / `traditional_docs_generated_from_commit`).
+
+Traditional document status (v1.4.1): `traditional_docs_status` has **three values: current / outdated / provisional** (`provisional` = the traditional documents were generated on a Dirty working tree, so their content may include uncommitted code); there is also `traditional_docs_working_tree` (`Clean` / `Dirty` / `Not Found (no Git)`); all three are recorded in `00-Project Knowledge Map.md`, **the knowledge map is the document status center**, and **no separate stale field is added to 01–07** — sync mode does not modify 01–07. Incremental maintenance distinguishes three mutually exclusive states: no Git / Git present but no formal baseline established (`not established`, so no `<base>..HEAD` diff is executed and a full re-verification is performed) / a formal baseline already exists.
 
 > The knowledge layer is the core; the 7 documents are presentation views of it. The knowledge map must be centered on the business capability index and must not be only a project introduction.
