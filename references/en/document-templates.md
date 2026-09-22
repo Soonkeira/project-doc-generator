@@ -481,13 +481,16 @@ public ReturnType MethodName(ParamType param)
 
 ## Project Knowledge Layer Templates
 
-The 7 traditional document templates above **remain unchanged** (file names, numbering, and paths are neither renamed nor deleted); they are presentation views of the knowledge layer. The project knowledge layer templates added in v1.2.0 are in **`references/en/business-logic-template.md`**:
+The 7 traditional document templates above **remain unchanged** (file names, numbering, and paths are neither renamed nor deleted); they are presentation views of the knowledge layer. The project knowledge layer templates (introduced in v1.2.0, extended in v1.3.0) are in **`references/en/business-logic-template.md`**:
 
 | Template | Output path |
 |----------|-------------|
 | Knowledge map template | `Doc/<project-name>/en/00-Project Knowledge Map.md` |
+| Source index template | `Doc/<project-name>/en/00-Source Index.md` |
 | Business logic entry template | `Doc/<project-name>/en/business/BL-<NNN>-<business-name>.md` |
 
-That file also defines: the BL numbering rules (allocated in segments by business domain; ranges are never reused or reordered), evidence status (`Verified` / `Partially Verified` / `Inferred` / `Not Found`), freshness (`Current` / `⚠ Possibly Stale`, determined mechanically from Git diff), the verification baseline, and traceability good/bad examples.
+That file also defines: the BL numbering rules (increasing in order of first creation; numbers are never reused and never reordered, and a new entry takes the smallest unused number after a deletion; the business domain is metadata in the BL entry header, so reclassification never changes an ID), evidence status (`Verified` / `Partially Verified` / `Inferred` / `Not Found`), freshness (`Current` / `⚠ Possibly Stale` / `Not Found (no Git baseline)`, determined mechanically from Git), the verification baseline, and traceability good/bad examples.
+
+The knowledge layer now has **bidirectional indexes**: the knowledge map (business capability → BL) and the source index (source → BL); both must stay consistent with the BL entries.
 
 > The knowledge layer is the core; the 7 documents are presentation views of it. The knowledge map must be centered on the business capability index and must not be only a project introduction.

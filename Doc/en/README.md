@@ -1,4 +1,4 @@
-> Version: v1.2.0 ｜ Author: [Soonkeira](https://github.com/Soonkeira)
+> Version: v1.3.0 ｜ Author: [Soonkeira](https://github.com/Soonkeira)
 
 # Project Doc Generator · Full Documentation (English)
 
@@ -7,6 +7,8 @@
 **Project Doc Generator** (`project-doc-generator`) reverse-engineers a **queryable, traceable and maintainable project knowledge system** from the existing code structure, business logic, APIs, database, call relationships and tests.
 
 **The knowledge layer is the core; the 7 standard documents are merely different presentation views of it.** The knowledge layer answers "how does the system work?", while the standard documents answer "how should the project be described by software engineering standards?" and take the knowledge layer as their source of truth. All 7 documents are kept — nothing is deleted and nothing is renamed.
+
+The knowledge layer consists of three parts: the **Project Knowledge Map**, the **Source Index** and the **BL business logic entries**. The knowledge map indexes from business domain down to BL entries, while the source index looks BL entries up from the source code; together they form a **bidirectional index** between BL entries and source code. The knowledge layer can therefore answer both "how is this business capability implemented?" and "which business does this piece of code belong to?".
 
 `Source Code → Code and business analysis → Project Knowledge Layer → 7 standard documents`
 
@@ -29,8 +31,10 @@ Questions it answers include: "How is this feature implemented?", "Why can this 
 | Source Evidence Tracing | Every important conclusion traces back to source files, symbols, APIs and tables, tagged with an evidence status |
 | Business Call Chains | Records the full chain entry point → application service → domain object → repository → external dependency |
 | Data Impact Analysis | Shows which tables, fields, caches, messages and files a piece of business logic ultimately changes |
+| Source-to-BL Reverse Index | Looks business logic up from source code (previously only BL → Source was possible): aggregates each BL entry's source evidence, data changes, trigger entry points and external impacts into four reverse index tables — source files and symbols → BL, tables/migrations → BL, APIs/entry points → BL, configuration items → BL |
+| Bidirectional Index Consistency | The source index must stay consistent with the BL entries; any mismatch counts as a validation failure and must be fixed before the verification baseline can advance |
 | Relationship Mapping | Maps the dependencies among APIs, the database, MQ and external services |
-| Git Verification Status | Records the verification baseline and each entry's last verified version, and derives freshness from them |
+| Git Verification Status | Records the knowledge map's verification baseline and each BL entry's last verified version; freshness status is determined mechanically by Git and is a field independent from evidence status |
 | 7 Standard Documents | A standardized document suite generated with the knowledge layer as the source of truth, kept backward compatible |
 
 ## 3. Output Structure
@@ -41,8 +45,9 @@ By default both the knowledge layer and all 7 standard documents are generated i
 Doc/<project-name>/
 ├── cn/
 │   ├── 00-项目知识地图.md          # Business capability index + verification baseline + common business question index
+│   ├── 00-源码索引.md              # Source → BL reverse index
 │   ├── business/
-│   │   └── BL-001-<业务名称>.md    # Business logic entry (14 sections)
+│   │   └── BL-001-<业务名称>.md    # Business logic entry (15 sections)
 │   ├── 01-需求规格.md
 │   ├── 02-概要设计.md
 │   ├── 03-详细设计.md
@@ -52,6 +57,7 @@ Doc/<project-name>/
 │   └── 07-部署手册与用户手册.md
 └── en/
     ├── 00-Project Knowledge Map.md
+    ├── 00-Source Index.md          # Source → BL reverse index
     ├── business/
     │   └── BL-001-<business-name>.md
     ├── 01-Requirement Specification.md
@@ -63,13 +69,15 @@ Doc/<project-name>/
     └── 07-Deployment & User Manual.md
 ```
 
-The knowledge layer consists of `00-Project Knowledge Map.md` and `business/BL-*.md`; the 7 standard documents take it as their source of truth. IDs and file names correspond one-to-one between the Chinese and the English output.
+The knowledge layer consists of `00-Project Knowledge Map.md`, `00-Source Index.md` and `business/BL-*.md`; **the source index must stay consistent with the BL entries**, and any mismatch counts as a validation failure. IDs and file names correspond one-to-one between the Chinese and the English output.
 
 ## 4. Business Logic Entry Structure
 
-**Numbering rule**: `BL-` plus a three-digit number, allocated in segments by business domain — the first domain uses `BL-001`–`BL-009`, and every subsequent domain takes 10 numbers (`BL-010`–`BL-019`, `BL-020`–`BL-029`, and so on). Allocated segments are never reused or reordered, and the same business logic keeps the same number in both languages.
+**Numbering rule**: `BL-` plus a three-digit number, incremented simply in the order entries are first created: `BL-001`, `BL-002`, `BL-003`, … — numbers are no longer allocated in segments by business domain. Numbers are never reused and never reordered; when an entry is deleted its number is retired, and a new entry takes the smallest number currently unused. The same business logic keeps the same number in both languages.
 
-**Fixed sections**: every BL entry must contain the following 14 sections, in exactly this order and with exactly these titles — no additions, no renames and no reordering.
+**Business domain is metadata**: the domain is written in the entry header field `**Business Domain**: <business-domain-name>`. Reclassifying domains changes only that field and **never changes an ID**. The knowledge map still groups entries by business domain, but group headings **must not carry number ranges**.
+
+**Fixed sections**: every BL entry must contain the following 15 sections, in exactly this order and with exactly these titles — no additions, no renames and no reordering.
 
 | # | Section | Requirement |
 |---|---------|-------------|
@@ -86,14 +94,17 @@ The knowledge layer consists of `00-Project Knowledge Map.md` and `business/BL-*
 | 11 | Related Tests | Real test files and test methods; write "No corresponding automated tests found." when there are none — tests are never invented |
 | 12 | Related Business Logic | Related BL IDs and names (upstream triggers, downstream dependencies, shared data) |
 | 13 | Evidence Status | Choose exactly one, see the table below |
-| 14 | Last Verified Version | Git commit + verification date (per-entry baseline); write "Not Found (no Git baseline)" when there is no Git |
+| 14 | Freshness Status | Choose exactly one of three, see the table below; determined mechanically by Git and independent from evidence status |
+| 15 | Last Verified Version | Git commit + verification date (per-entry baseline); write "Not Found (no Git baseline)" when there is no Git |
 
-**Two mutually independent fields** that must never be conflated:
+**Two mutually independent fields** that must never be conflated or merged into a single display:
 
 | Field | Determined by | Values |
 |-------|---------------|--------|
-| Evidence status | Model judgement | `Verified` / `Partially Verified` / `Inferred` / `Not Found` |
-| Freshness status | Mechanical Git diff check | `Current` / `⚠ Possibly Stale` |
+| Evidence status | Model judgement (one of four) | `Verified` / `Partially Verified` / `Inferred` / `Not Found` |
+| Freshness status | Mechanical Git check (one of three) | `Current` / `⚠ Possibly Stale` / `Not Found (no Git baseline)` |
+
+The knowledge map index table always shows them in **two separate columns**, in the order `| ID | Business Capability | Description | Evidence Status | Freshness Status |`; the freshness marker must never be prefixed to the evidence status, and the two must never be merged into a single display in any form.
 
 `Verified` means "the implementation was read at the time" — not that the content is still fresh; `⚠ Possibly Stale` means "the code has changed" — not that the original evidence was wrong.
 
@@ -101,19 +112,34 @@ The knowledge layer consists of `00-Project Knowledge Map.md` and `business/BL-*
 
 | Mode | How to trigger | Flow |
 |------|----------------|------|
-| Generation mode | `$project-doc-generator 生成当前项目的完整项目文档`, or say "Generate project documents" / "Create project documents" | Analyze code → extract business knowledge → fetch version info → build the knowledge layer → generate the 7 documents with the knowledge layer as the source of truth → post-generation validation |
-| Query mode | Just ask a business question | Read the knowledge map to locate the related BL entry → read that entry → answer along its call chain, business rules, data changes and source evidence; if the entry is marked `⚠ Possibly Stale`, re-check the source code before answering |
+| Generation mode | `$project-doc-generator 生成当前项目的完整项目文档`, or say "Generate project documents" / "Create project documents" | Full scan of the code → extract business knowledge → fetch version info → build the knowledge layer (knowledge map + source index + BL entries) → generate the 7 standard documents with the knowledge layer as the source of truth (writes files) → post-generation validation |
+| Query mode (read-only by default) | Just ask a business question | Reads only the knowledge map, the source index and the BL entries, locates the related entry, and answers along its call chain, business rules, data changes and source evidence — **writes no files**; when an entry is missing or possibly stale it states explicitly that "the source code prevails" and suggests running sync mode |
+| Sync mode (incremental maintenance) | Ask for an incremental sync, e.g. "Sync project documents" / "Sync the knowledge layer" | Change impact analysis → re-verify only the affected entries → refresh freshness status → update the source index → advance the verification baseline; writes the knowledge layer only and never touches the 7 standard documents |
 
-In query mode, if a BL entry is missing or cannot be verified, the tool states explicitly that the document is stale and that the source code prevails, then updates that entry.
+Query mode is read-only by default and never rewrites a file just because a question was asked. Sync mode maintains the knowledge layer only (knowledge map, source index and BL entries); the 7 standard documents are refreshed only by running generation mode again.
 
 ## 6. Git Incremental Maintenance and Staleness Detection
 
-1. **First run**: scan the whole codebase, build the knowledge map and all BL entries, then take the current commit with `git rev-parse HEAD` and write it into the "Verification Baseline" of the knowledge map as `last_verified_commit`, together with the verification date.
-2. **Later runs**: read the existing `last_verified_commit`, run `git diff --name-status <last_verified_commit>..HEAD` to obtain the changed file set, and intersect it with the files listed under each BL entry's "Source Evidence".
-3. **Re-verify only the affected entries**: the document set is not rewritten as a whole; unaffected entries stay as they are (no content rewrite, no renumbering). Each BL entry also has its own "Last Verified Version" commit.
-4. **Staleness rule**: if a file listed under an entry's "Source Evidence" was modified between that entry's "Last Verified Version" commit and the current HEAD, and the entry was not re-verified in this run, its freshness becomes `⚠ Possibly Stale`; otherwise it stays `Current`.
-5. **Baseline update**: only after every affected entry has been re-verified is the knowledge map's `last_verified_commit` advanced to the current HEAD.
-6. **Degradation**: without Git or a valid `HEAD` no freshness determination is performed, freshness is recorded as `Not Found (no Git baseline)`, and the report states that every run needs a full re-check; when the baseline commit is unreachable (shallow clone, rebase, force-push) the run degrades to a full re-check with the reason stated. **Commit hashes are never fabricated.**
+1. **First run**: scan the whole codebase, build the knowledge map, the source index and all BL entries, then take the current commit with `git rev-parse HEAD` and write it into the "Verification Baseline" of the knowledge map as `last_verified_commit`, together with the verification date.
+2. **Later runs (changed file set)**: read the existing `last_verified_commit`; the changed file set is the **committed part ∪ the working-tree part**:
+   - Committed part: `git diff --name-status -M <last_verified_commit>..HEAD`
+   - Working-tree part: `git status --porcelain` (covers staged, unstaged and untracked `??` entries)
+
+   **Looking only at `<last_verified_commit>..HEAD` is not enough**: code may already have been changed without being committed, and comparing commit ranges alone would miss stale entries.
+3. **Change impact analysis (multi-layer)**: intersecting file paths alone is not enough. Each layer below is evaluated, and a hit on any layer marks the entry affected and records the basis:
+   - Path layer: changed files ∩ the paths in the entry's "Source Evidence"
+   - Symbol layer: changed symbols ∩ the symbols on the call chain
+   - Data layer: table names / fields / migrations ∩ the entry's "Data Changes"
+   - Interface layer: routes / entry-point signatures ∩ the entry's "Trigger Entry Points"
+   - Configuration layer: configuration items ∩ the entry's "External Impacts" and "Preconditions"
+   - Test layer: test files ∩ the entry's "Related Tests" → mark "test evidence pending re-check"
+   - Rename / delete: a broken path must be repaired; a deleted evidence file requires re-verification
+4. **Re-verify only the affected entries**: the document set is not rewritten as a whole; unaffected entries stay as they are (no content rewrite, no renumbering). Each BL entry also has its own "Last Verified Version" commit.
+5. **Refresh the freshness status and the source index**: after the affected entries are re-verified their "Freshness Status" is updated, and changes to source evidence, data changes, trigger entry points and external impacts are propagated into `00-Source Index.md` so that the source index and the BL entries stay consistent.
+6. **Staleness rule**: if a file listed under an entry's "Source Evidence" was modified after that entry's "Last Verified Version" commit (**including uncommitted changes**) and the entry was not re-verified in this run, its freshness becomes `⚠ Possibly Stale`; otherwise it stays `Current`.
+7. **Baseline update**: only after every affected entry has been re-verified is the knowledge map's `last_verified_commit` advanced to the current HEAD.
+8. **Record the "last incremental analysis"**: the knowledge map records the analysis time, the baseline commit, the number of changed files, the affected entries, the basis for each judgement and any items left unhandled.
+9. **Degradation**: without Git or a valid `HEAD` no freshness determination is performed, freshness is recorded as `Not Found (no Git baseline)`, and the report states that every run needs a full re-check; when the baseline commit is unreachable (shallow clone, rebase, force-push) the run degrades to a full re-check with the reason stated. **Commit hashes are never fabricated.**
 
 ## 7. Usage
 
@@ -158,6 +184,7 @@ project-doc-generator/
 
 | Version | Changes |
 |---------|---------|
+| v1.3.0 | Three core upgrades to the knowledge layer: **stable IDs** — BL numbering now increments simply in creation order, the business domain is demoted to entry metadata, and reclassification never changes an ID; **bidirectional indexing** — a new source index `00-Source Index.md` aggregates each BL entry's source evidence, data changes, trigger entry points and external impacts into four reverse index tables, forming a bidirectional index with the BL entries; **precise staleness detection** — the changed file set now covers uncommitted changes (`git status --porcelain`), and change impact is analysed across multiple layers (paths / symbols / data / interfaces / configuration / tests / renames and deletions). Also: BL entries gained a "Freshness Status" section, bringing the fixed section count to 15, and evidence status and freshness status are displayed as two independent fields that must never be merged; the operating modes were split into generation / query (read-only by default, writes no files) / sync (incremental maintenance) |
 | v1.2.0 | Added the project knowledge layer: project knowledge map, reverse business logic analysis, source evidence tracing, business call chains, data impact analysis, Git incremental maintenance and document staleness detection; the 7 standard documents remain backward compatible |
 | v1.1.0 | Unified output paths and file names; added selective generation, overwrite confirmation, safety exclusions, source evidence and post-generation validation |
 

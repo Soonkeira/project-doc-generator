@@ -136,6 +136,20 @@ git rev-parse HEAD
 git log -1 --format=%cd --date=short
 ```
 
+**Get working-tree changes (staged, unstaged and untracked — used by knowledge-layer incremental detection):**
+```bash
+git status --porcelain
+```
+
+Note: knowledge-layer freshness determination must cover **both committed and uncommitted** changes; comparing only a commit range misses working-tree edits and therefore misses stale entries.
+
+**Get the changed-file list with rename detection (commit range):**
+```bash
+git diff --name-status -M <base>..HEAD
+```
+
+Note: `-M` detects renames; renamed evidence files need their paths corrected.
+
 ---
 
 ## 3. Change Log Format

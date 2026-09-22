@@ -1,4 +1,4 @@
-# Project Knowledge Layer Templates (v1.2.0)
+# Project Knowledge Layer Templates (v1.3.0)
 
 > **Positioning**: The knowledge layer is the core; the 7 traditional documents (01–07) are only different presentation views of the knowledge layer. The 7 document templates are in `references/en/document-templates.md`, and their file names, numbering, and paths remain unchanged.
 >
@@ -8,16 +8,19 @@
 > Business question → Business capability → Business rule → Entry/API → Call chain → Data changes → External dependencies → Source files/symbols → Tests
 > ```
 >
+> **Bidirectional index**: BL entry → source (the "Source Evidence", "Data Changes", "Trigger Entry Points", and "External Impacts" sections of each BL entry) and source → BL (`00-Source Index.md`) are reverse indexes of each other and must stay consistent.
+>
 > **Author acquisition priority**: `SKILL.md`, section "Author Information Acquisition", is the single authority (four levels: (1) author explicitly provided by the user → (2) local default author `Soonkeira` (https://github.com/Soonkeira) → (3) Git commit author `git log -1 --format=%an` → (4) leave empty). Using a machine account name (`$env:USERNAME` / `whoami`) as the author is **strictly prohibited**.
 >
 > **Example labeling**: All example content in the templates of this file is placeholder content and must be explicitly labeled `Example (placeholder, not project fact)`; replace it with real analysis results when generating documents.
 >
 > **This file contains**:
 > 1. Knowledge map template `00-Project Knowledge Map.md`
-> 2. Business logic entry template `business/BL-<NNN>-<business-name>.md`
-> 3. Status definitions and determination rules
-> 4. Traceability good/bad examples
-> 5. Example content labeling rules
+> 2. Source index template `00-Source Index.md`
+> 3. Business logic entry template `business/BL-<NNN>-<business-name>.md`
+> 4. Status definitions and determination rules
+> 5. Traceability good/bad examples
+> 6. Example content labeling rules
 
 ---
 
@@ -64,7 +67,18 @@
 | last_verified_commit | `<commit hash>` |
 | Verification date | YYYY-MM-DD |
 | Freshness determination available | Yes |
-| Freshness determination method | Intersect `git diff --name-status <last_verified_commit>..HEAD` with the file set listed under "Source Evidence" of each BL entry |
+| Freshness determination method | Change file set (committed part `git diff --name-status -M <last_verified_commit>..HEAD` ∪ working-tree part `git status --porcelain`) matched against each BL entry's "Source Evidence", "Core Execution Flow", "Data Changes", "Trigger Entry Points", "External Impacts", "Preconditions", and "Related Tests" through the multi-layer impact analysis (see section 4.2) |
+
+### Most Recent Incremental Analysis
+
+| Field | Value |
+|-------|-------|
+| Baseline commit | `<commit hash>` |
+| Analysis date | YYYY-MM-DD |
+| Changed files (including uncommitted) | <N> |
+| Affected BL | [BL-001](business/BL-001-<business-name>.md), [BL-002](business/BL-002-<business-name>.md) |
+| BL re-verified | [BL-001](business/BL-001-<business-name>.md) |
+| BL still marked stale | [BL-002](business/BL-002-<business-name>.md) |
 
 **Degraded form when there is no Git or no valid HEAD**:
 
@@ -74,26 +88,28 @@
 | Verification date | YYYY-MM-DD |
 | Freshness determination available | No |
 | Freshness determination method | No freshness determination; every run requires a full re-verification |
+| Most recent incremental analysis | Not Found (no Git baseline, no incremental analysis) |
 
 > Never fabricate a commit hash when there is no Git baseline.
 
 ## 3. Business Capability Index
 
 > This section is the main body of the knowledge map. **The knowledge map must not be only a project introduction**; the business capability index must be its main body.
-> The ID column must be a link to the BL entry; the Status column holds the evidence status, and when the entry's freshness status is possibly stale, prefix the evidence status with `⚠ Possibly Stale`.
+> The ID column must be a link to the BL entry; IDs increase **globally in order of first creation** and are unrelated to business domains — a domain determines grouping only, never numbering.
+> Evidence status and freshness status are **two independent fields** shown in two separate columns; **conflating them is strictly prohibited**.
 
-### 3.1 <Business Domain One> (BL-001–BL-009)
+### 3.1 <Business Domain One>
 
-| ID | Business Capability | Description | Status |
-|----|---------------------|-------------|--------|
-| [BL-001](business/BL-001-<business-name>.md) | <business capability name> | <one sentence on the problem this capability solves> | Verified |
-| [BL-002](business/BL-002-<business-name>.md) | <business capability name> | <one sentence on the problem this capability solves> | ⚠ Possibly Stale Partially Verified |
+| ID | Business Capability | Description | Evidence Status | Freshness Status |
+|----|---------------------|-------------|-----------------|------------------|
+| [BL-001](business/BL-001-<business-name>.md) | <business capability name> | <one sentence on the problem this capability solves> | Verified | Current |
+| [BL-002](business/BL-002-<business-name>.md) | <business capability name> | <one sentence on the problem this capability solves> | Partially Verified | ⚠ Possibly Stale |
 
-### 3.2 <Business Domain Two> (BL-010–BL-019)
+### 3.2 <Business Domain Two>
 
-| ID | Business Capability | Description | Status |
-|----|---------------------|-------------|--------|
-| [BL-010](business/BL-010-cancel-order.md) | Cancel Order | <one sentence on the problem this capability solves> | Verified |
+| ID | Business Capability | Description | Evidence Status | Freshness Status |
+|----|---------------------|-------------|-----------------|------------------|
+| [BL-003](business/BL-003-cancel-order.md) | Cancel Order | <one sentence on the problem this capability solves> | Verified | Current |
 
 ## 4. Common Business Question Index
 
@@ -101,17 +117,17 @@
 |-------------------|------------------------|
 | How is this feature implemented? | [BL-001](business/BL-001-<business-name>.md) |
 | Why can this not be deleted? | [BL-002](business/BL-002-<business-name>.md) |
-| What happens after an order is cancelled? | [BL-010](business/BL-010-cancel-order.md) |
-| Why does this status change? | [BL-010](business/BL-010-cancel-order.md) |
+| What happens after an order is cancelled? | [BL-003](business/BL-003-cancel-order.md) |
+| Why does this status change? | [BL-003](business/BL-003-cancel-order.md) |
 | What data does this API ultimately modify? | [BL-001](business/BL-001-<business-name>.md) |
 | Where in the code is this business rule? | [BL-002](business/BL-002-<business-name>.md) |
 
 ## 5. Not Found / Inferred Entries Summary
 
-| ID | Business Capability | Status | Reason and Limitations |
-|----|---------------------|--------|------------------------|
-| [BL-003](business/BL-003-<business-name>.md) | <business capability name> | Inferred | <inferred only from directory structure and naming; no call-chain evidence found> |
-| [BL-004](business/BL-004-<business-name>.md) | <business capability name> | Not Found | <no entry point, test, or data access code found> |
+| ID | Business Capability | Evidence Status | Reason and Limitations |
+|----|---------------------|-----------------|------------------------|
+| [BL-004](business/BL-004-<business-name>.md) | <business capability name> | Inferred | <inferred only from directory structure and naming; no call-chain evidence found> |
+| [BL-005](business/BL-005-<business-name>.md) | <business capability name> | Not Found | <no entry point, test, or data access code found> |
 
 ## 6. Coverage and Limitations
 
@@ -123,39 +139,27 @@
 ### 1.3 Filling requirements
 
 - The **Analysis Scope** must reflect what was actually scanned: whatever is listed as scanned must really have been read, and the reason for skipping sensitive files and dependency directories must be stated.
-- The **Verification Baseline** is the global baseline; `last_verified_commit` and the verification date must come from real Git command output. Without Git, use the degraded form and state explicitly that "every run requires a full re-verification".
-- The **Business Capability Index** is grouped by business domain, one table per group, with the fixed columns `| ID | Business Capability | Description | Status |`. Do not add, remove, or rename columns.
-- Annotate each business domain heading with its number range (for example `(BL-010–BL-019)`) so numbering continuity can be checked.
+- The **Verification Baseline** is the global baseline; `last_verified_commit`, the verification date, and the "Most Recent Incremental Analysis" must come from real Git command output and real analysis results (the changed-file count includes uncommitted changes). Without Git, use the degraded form and state explicitly that "every run requires a full re-verification".
+- The **Business Capability Index** is grouped by business domain, one table per group, with the fixed columns `| ID | Business Capability | Description | Evidence Status | Freshness Status |`. Do not add, remove, or rename columns, and do not merge the two statuses into one column.
+- **The Business Capability Index is displayed grouped by business domain**: a group heading holds only the business domain name and **must not carry any number range**; the business domain must match the `**Business Domain**` field in the header of each BL entry.
+- The **Not Found / Inferred Entries Summary** lists only entries whose evidence status is `Inferred` or `Not Found`, with their evidence gaps; that table holds the evidence status only, never the freshness status.
 - The **Common Business Question Index** must map real user questions to BL IDs, with links that jump directly to the corresponding entry.
 - **Being only a project introduction is prohibited**: a knowledge map without a business capability index counts as incomplete and must not be delivered.
 
 ---
 
-## 2. Business Logic Entry Template `business/BL-<NNN>-<business-name>.md`
+## 2. Source Index Template `00-Source Index.md`
 
-### 2.1 Output path and numbering rules
+### 2.1 Output path
 
-- English: `Doc/<project-name>/en/business/BL-<NNN>-<business-name>.md`
-- Chinese: `Doc/<项目名称>/cn/business/BL-<NNN>-<业务名称>.md`
-- The same business logic uses the **same number** in every language.
-
-**BL numbering rules**: `BL-` plus a three-digit number, allocated in segments by business domain:
-
-| Business domain | Number range |
-|-----------------|--------------|
-| First business domain | `BL-001`–`BL-009` |
-| Second business domain | `BL-010`–`BL-019` |
-| Third business domain | `BL-020`–`BL-029` |
-| Nth business domain (N ≥ 2) | `BL-{(N-1)*10}`–`BL-{(N-1)*10+9}` |
-
-Once allocated, a range is **never reused and never reordered**; new business domains append a new range at the end, and numbers of deleted entries are not recycled.
+`Doc/<project-name>/en/00-Source Index.md` (Chinese counterpart: `Doc/<项目名称>/cn/00-源码索引.md`)
 
 ### 2.2 Template body
 
 > Example (placeholder, not project fact). Replace it with real analysis results when generating documents.
 
 ````markdown
-# BL-010 Cancel Order
+# Source Index
 
 **Project Name**: XXX Project
 **Author**: <Author>
@@ -166,9 +170,107 @@ Once allocated, a range is **never reused and never reordered**; new business do
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
+| 1.26.509.1234 | 2026-05-09 | <Author> | Initial version: source → BL reverse index established |
+
+---
+
+> This index is aggregated from the "Source Evidence", "Data Changes", "Trigger Entry Points", and "External Impacts" sections of every BL entry and must stay consistent with those entries; any inconsistency counts as a validation failure.
+
+## 1. Source Files and Symbols → BL
+
+| Source Path | Symbol | Type | Covered BL |
+|-------------|--------|------|------------|
+| `src/order/controller.ts` | `OrderController.cancel()` | Controller | [BL-003](business/BL-003-cancel-order.md) |
+| `src/order/service.ts` | `OrderService.cancelOrder()` | Service | [BL-003](business/BL-003-cancel-order.md) |
+| `src/order/repository.ts` | `OrderRepository.save()` | Repository | [BL-003](business/BL-003-cancel-order.md) |
+| `src/order/repository.ts` | `OrderRepository.findById()` | Repository | [BL-001](business/BL-001-<business-name>.md) |
+
+## 2. Data Tables / Migrations → BL
+
+| Table Name | Change Source | Covered BL |
+|------------|---------------|------------|
+| `orders` | `src/order/repository.ts` → `OrderRepository.save()` | [BL-003](business/BL-003-cancel-order.md) |
+| `orders` | `migrations/20260501_add_cancel_reason.sql` | [BL-003](business/BL-003-cancel-order.md) |
+
+## 3. APIs / Entry Points → BL
+
+| Entry Identifier | Type | Covered BL |
+|------------------|------|------------|
+| `POST /api/orders/{id}/cancel` | HTTP API | [BL-003](business/BL-003-cancel-order.md) |
+
+## 4. Configuration Items → BL
+
+| Configuration Item | Covered BL |
+|--------------------|------------|
+| `ORDER_CANCEL_WINDOW_MINUTES` | [BL-003](business/BL-003-cancel-order.md) |
+
+## 5. Uncovered Source Files
+
+| Source Path | Note |
+|-------------|------|
+| `<important file that was scanned but is not referenced by any BL>` | <reason: no entry yet / infrastructure / confirmed to contain no business logic> |
+
+## 6. Coverage and Limitations
+
+- Covered: <business domains and source scope for which a reverse index exists>
+- Not covered: <directories or modules left out of the index, and why>
+- Known limitations: <dynamic dispatch, reflection, config-driven branches, generated code, and other parts that cannot be statically attributed to a BL>
+
+## 7. Maintenance Rules
+
+- **Generation mode**: scan source and BL entries in full and build this index in one pass.
+- **Sync mode**: incremental maintenance, updated together with the BL entries; it **writes only the knowledge layer** (knowledge map, source index, BL entries) and does not touch the 7 traditional documents.
+- **Query mode**: **read-only by default**; answer from the knowledge map, source index, and BL entries without writing any file.
+- Whenever the "Source Evidence", "Data Changes", "Trigger Entry Points", or "External Impacts" of a BL entry is added, changed, or removed, the corresponding rows of this index must be updated in the same run.
+- This index is the **reverse index (source → BL)** and must stay consistent with the forward references inside the BL entries (BL → source); any inconsistency counts as a validation failure and must be fixed before delivery.
+````
+
+### 2.3 Filling requirements
+
+- This index **must be aggregated from the BL entries**; a separate hand-written list is not allowed, and any inconsistency with the BL entries counts as a validation failure.
+- The four reverse index tables have the fixed columns `| Source Path | Symbol | Type | Covered BL |`, `| Table Name | Change Source | Covered BL |`, `| Entry Identifier | Type | Covered BL |`, and `| Configuration Item | Covered BL |`. Do not add, remove, or rename columns.
+- The "Covered BL" column must hold links to BL entries; when the same source path is covered by several BLs, **list one row per BL** instead of packing several IDs into one row.
+- The "Uncovered Source Files" table lists only **important files** (entry points, services, data access, configuration, migration scripts) with the reason they are uncovered; dependency directories, build artifacts, caches, and generated files are not listed.
+- **Update it together during incremental sync**: after adding or deleting a BL entry, or after changing its evidence sections, the index must be re-aggregated; sync mode writes only the knowledge layer and does not touch the 7 traditional documents.
+- Never present an inferred attribution as a confirmed one: reference relations that cannot be confirmed from code belong in "Coverage and Limitations" with the basis for the inference.
+
+---
+
+## 3. Business Logic Entry Template `business/BL-<NNN>-<business-name>.md`
+
+### 3.1 Output path and numbering rules
+
+- English: `Doc/<project-name>/en/business/BL-<NNN>-<business-name>.md`
+- Chinese: `Doc/<项目名称>/cn/business/BL-<NNN>-<业务名称>.md`
+- The same business logic uses the **same number** in every language.
+
+**BL numbering rules**: `BL-` plus a three-digit number, increasing by **order of first creation**: `BL-001`, `BL-002`, `BL-003`, …
+
+- Numbers are **never reused and never reordered**: once an entry's number is assigned it never changes, no matter how entries are added, deleted, or reclassified.
+- When an entry is deleted its number is retired; a new entry takes the **smallest number currently unused** (for example, if `BL-003` was retired together with its entry, the next new entry uses `BL-003`).
+- **No numbering by business domain**: the business domain is metadata, written in the `**Business Domain**: <domain name>` field of the BL entry header, and plays no part in numbering.
+- When a business domain is reclassified, **change only the `**Business Domain**` field and never the ID**; when the knowledge map displays entries grouped by domain, group headings must not carry a number range.
+
+### 3.2 Template body
+
+> Example (placeholder, not project fact). Replace it with real analysis results when generating documents.
+
+````markdown
+# BL-003 Cancel Order
+
+**Project Name**: XXX Project
+**Business Domain**: <domain name>
+**Author**: <Author>
+**Date**: YYYY-MM-DD
+**Version**: 1.26.509.1234
+
+## Change Log
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
 | 1.26.509.1234 | 2026-05-09 | <Author> | Initial version |
 
-> The header information does not count as one of the 14 fixed sections below.
+> The header information (project name / business domain / author / date / version + change log) does not count as one of the 15 fixed sections below.
 
 ---
 
@@ -240,16 +342,21 @@ OrderRepository.save()
 - `BL-<NNN>` <related business logic name>
 
 ## 13. Evidence Status
-`Verified` / `Partially Verified` / `Inferred` / `Not Found` (choose exactly one)
+`Verified` / `Partially Verified` / `Inferred` / `Not Found` (choose exactly one; judged by the model)
 
-## 14. Last Verified Version
+## 14. Freshness Status
+`Current` / `⚠ Possibly Stale` / `Not Found (no Git baseline)` (choose exactly one; determined mechanically from Git)
+
+## 15. Last Verified Version
 - Git commit: `<commit hash>`
 - Verification date: YYYY-MM-DD
 ````
 
-### 2.3 Filling requirements and good/bad examples per section
+### 3.3 Filling requirements and good/bad examples per section
 
-**The order and titles of the 14 fixed sections are verbatim; do not add, remove, rename, or reorder them.**
+**The order and titles of the 15 fixed sections are verbatim; do not add, remove, rename, or reorder them.**
+
+The header metadata block (project name / business domain / author / date / version + change log) does not count as one of these 15 sections.
 
 | # | Section | Filling requirement |
 |---|---------|---------------------|
@@ -265,8 +372,9 @@ OrderRepository.save()
 | 10 | Source Evidence | Two-column table `\| Type \| Source \|`, with types covering Controller / Service / Domain / Repository / Model / table / configuration item, and the source written as `path → symbol`. |
 | 11 | Related Tests | Real test files and test methods; when there are none, write "No corresponding automated tests found." **Fabricating tests is prohibited.** |
 | 12 | Related Business Logic | Related BL IDs and names (upstream triggers, downstream dependencies, shared data). |
-| 13 | Evidence Status | Choose exactly one: `Verified` / `Partially Verified` / `Inferred` / `Not Found`. |
-| 14 | Last Verified Version | Git commit + verification date (per-entry baseline); write "Not Found (no Git baseline)" when there is no Git. |
+| 13 | Evidence Status | Choose exactly one: `Verified` / `Partially Verified` / `Inferred` / `Not Found`, judged by the model. |
+| 14 | Freshness Status | Determined mechanically from Git, choose exactly one: `Current` / `⚠ Possibly Stale` / `Not Found (no Git baseline)`; **never write it merged with the evidence status**, and never substitute a model judgment for the Git determination. |
+| 15 | Last Verified Version | Git commit + verification date (per-entry baseline); write "Not Found (no Git baseline)" when there is no Git. |
 
 **How to write section 5, "Core Execution Flow"**:
 
@@ -304,9 +412,9 @@ OrderRepository.save()
 
 ---
 
-## 3. Status Definitions and Determination Rules
+## 4. Status Definitions and Determination Rules
 
-### 3.1 Evidence status
+### 4.1 Evidence status
 
 **Judged by the model**; each BL entry and each index row in the knowledge map **must choose exactly one of four**:
 
@@ -317,80 +425,108 @@ OrderRepository.save()
 | `Inferred` | Inferred from naming, directory structure, configuration, or documentation | No direct implementation evidence found; inference is only possible from structure or naming, and the basis for inference must be stated |
 | `Not Found` | No evidence found at all | No entry point, implementation, test, or data access code found |
 
-### 3.2 Freshness
+### 4.2 Freshness status
 
-**Determined mechanically from Git diff, not judged by the model**; only two values exist:
+**Determined mechanically from Git, not judged by the model**; only three values exist:
 
-| Freshness | Meaning |
-|-----------|---------|
-| `Current` | None of the files listed under the entry's "Source Evidence" were modified between the "Last Verified Version" commit and the current HEAD |
-| `⚠ Possibly Stale` | At least one file in that set was modified, and the entry was not re-verified in this run |
+| Freshness status | Meaning |
+|------------------|---------|
+| `Current` | None of the files and symbols related to the entry's evidence changed between the "Last Verified Version" commit and the current state (HEAD + working tree) |
+| `⚠ Possibly Stale` | Something in that scope did change, and the entry was not re-verified in this run |
+| `Not Found (no Git baseline)` | No Git or no valid HEAD, so freshness cannot be determined (see 4.4) |
 
-**Determination procedure (per entry)**:
+**Step 1: Determine the change file set (uncommitted changes must be included)**
 
-1. Take the commit in the entry's "Last Verified Version" as the baseline `<base>`.
-2. Run `git diff --name-status <base>..HEAD` to obtain the list of files modified since the baseline.
-3. **Intersect** that file list with the file set listed under the entry's "Source Evidence".
-4. Non-empty intersection and the entry was not re-verified in this run → set freshness to `⚠ Possibly Stale`; empty intersection → freshness is `Current`.
+Change file set = **committed part** ∪ **working-tree part**:
 
-Supporting commands: `git rev-parse HEAD` (current baseline), `git log --oneline <base>..HEAD` (change overview), `git rev-list --count HEAD` (fourth part of the version number), `git log -1 --format=%an` (Git commit author).
+| Part | Command | Scope |
+|------|---------|-------|
+| Committed part | `git diff --name-status -M <base>..HEAD` | Changes committed since the baseline; `-M` detects renames |
+| Working-tree part | `git status --porcelain` | Staged, unstaged, and untracked (`??`) changes |
 
-### 3.3 The two fields are independent
+> **Never look only at `<base>..HEAD`**: code may already be changed but not yet committed, so comparing commits alone misses staleness; the working-tree part must be included.
+> Untracked files count only when they fall inside the analysis scope; entries ignored by `.gitignore` and default skipped directories (dependencies, build artifacts, caches, etc.) are skipped.
 
-- Evidence status and freshness are **two mutually independent fields** and **must never be conflated**: `Verified` means "the implementation was read at the time", not that the content is still fresh; `⚠ Possibly Stale` means "the code has changed", not that the original evidence was wrong.
-- The Status column of the knowledge map shows the **evidence status**; when the entry's freshness is possibly stale, prefix the evidence status with `⚠ Possibly Stale` (for example `⚠ Possibly Stale Partially Verified`).
+**Step 2: Multi-layer impact analysis** (any layer hit means the entry is affected, and the hit basis must be recorded):
 
-### 3.4 Degradation without Git or without a valid HEAD
+| Layer | Determination method |
+|-------|----------------------|
+| a. Path layer | changed files ∩ the entry's "Source Evidence" paths |
+| b. Symbol layer | symbols modified/added/deleted in the diff ∩ the call-chain symbols in the entry's "Core Execution Flow" and the symbol column of "Source Evidence" |
+| c. Data layer | table names / field names / migrations touched by the change ∩ the entry's "Data Changes" |
+| d. Interface layer | routes / APIs / entry signatures touched by the change ∩ the entry's "Trigger Entry Points" |
+| e. Configuration layer | configuration items / environment variables touched by the change ∩ the entry's "External Impacts" and "Preconditions" |
+| f. Test layer | test files touched by the change ∩ the entry's "Related Tests" → mark "test evidence pending re-check" (the business logic itself is not necessarily stale) |
+| g. Rename / deletion | evidence file renamed → "path broken, needs fixing"; evidence file deleted → "evidence file deleted, re-verify or retire this entry" |
+
+**Additional report**: if a changed file defines a symbol that appears in some BL's call chain but is not listed under that BL's "Source Evidence" → mark "evidence list incomplete, needs completion".
+
+**Step 3: Reach the conclusion**
+
+Any layer hit and the entry was not re-verified in this run → set freshness to `⚠ Possibly Stale`; no layer hit → freshness is `Current`.
+
+Supporting commands: `git rev-parse HEAD` (current baseline), `git log --oneline <base>..HEAD` (change overview), `git status --porcelain` (uncommitted changes), `git rev-list --count HEAD` (fourth part of the version number), `git log -1 --format=%an` (Git commit author).
+
+### 4.3 The two fields are independent
+
+- Evidence status and freshness status are **two mutually independent fields** that **must never be conflated or written merged**: `Verified` means "the implementation was read at the time", not that the content is still fresh; `⚠ Possibly Stale` means "the code has changed", not that the original evidence was wrong.
+- The knowledge map shows them in **two separate columns**: `| ID | Business Capability | Description | Evidence Status | Freshness Status |`; the evidence status column holds only one of the four values, and the freshness status column holds only one of the three values.
+- **Never** merge the two statuses into one column or one line: do not join the evidence status and the freshness status with a prefix, a slash, parentheses, or similar — each must occupy its own column or its own section.
+- Inside a BL entry the two are likewise written in separate sections: "13. Evidence Status" and "14. Freshness Status".
+
+### 4.4 Degradation without Git or without a valid HEAD
 
 - Perform no freshness determination; record freshness as `Not Found (no Git baseline)`.
 - State in the "Verification Baseline" section of the knowledge map that freshness determination is unavailable and that **every run requires a full re-verification**.
 - **Never fabricate a commit hash**, and never substitute a date or a file timestamp for a commit.
 
-### 3.5 Incremental maintenance baseline
+### 4.5 Incremental maintenance baseline
 
 - **Global baseline**: written in the "Verification Baseline" section of `00-Project Knowledge Map.md`, with the fields `last_verified_commit` + verification date.
 - **Per-entry baseline**: written in the "Last Verified Version" section of each BL entry, with the fields Git commit + verification date.
-- During an incremental update, re-verify only the entries changed since the baseline (determined by the intersection rule in 3.2); keep the "Last Verified Version" of unchanged entries at its original value instead of refreshing it to the current HEAD.
+- During an incremental update, re-verify only the affected entries (determined by the multi-layer analysis in 4.2); keep the "Last Verified Version" of unaffected entries at its original value instead of refreshing it to the current HEAD.
+- After every incremental analysis, record in "Most Recent Incremental Analysis" of the knowledge map's "Verification Baseline" section: baseline commit, analysis date, changed-file count (including uncommitted), affected BL, re-verified BL, and BL still marked stale.
+- The change file set must include uncommitted changes (`git status --porcelain`); **never compare only `<base>..HEAD`**.
 
-### 3.6 Prohibitions
+### 4.6 Prohibitions
 
 - **Never package model inference as fact**: inferred content must be explicitly labeled `Status: Inferred` with its basis, and assertive wording such as "the system will" or "it must be" is not allowed.
-- Do not fabricate commit hashes, table names, APIs, test cases, or business rules.
+- Do not fabricate business facts, commit hashes, table names, APIs, test cases, or business rules; freshness determination must come from real Git command output, and **fabricating a commit hash in a freshness determination is prohibited**.
 - Do not delete the existing 7 document templates, perform large-scale renames, or introduce runtime dependencies; do not introduce a database, web UI, RAG, or vector database.
 
 ---
 
-## 4. Traceability Good/Bad Examples
+## 5. Traceability Good/Bad Examples
 
-### 4.1 Business rules
+### 5.1 Business rules
 
 - Bad: "The system checks user permissions."
 - Good: "The system checks in `PermissionService.checkPermission()` whether the current user has the operation permission for that resource."
 
-### 4.2 Call chain
+### 5.2 Call chain
 
 - Bad: "Call the order service to complete the cancellation."
 - Good: `OrderController.cancel()` → `OrderService.cancelOrder()` → `Order.cancel()` → `InventoryService.release()` → `OrderRepository.save()`
 
-### 4.3 Data changes
+### 5.3 Data changes
 
 - Bad: "Update the order status."
 - Good: `orders.status: PENDING_PAYMENT → CANCELLED`, with `orders.updated_at` updated in the same transaction.
 
-### 4.4 Tests
+### 5.4 Tests
 
 - Bad: "Already covered by unit tests."
 - Good: "`tests/order/cancel.spec.ts` → `should cancel pending order` covers the normal cancellation path." (When no test is found, write "No corresponding automated tests found.")
 
-### 4.5 Labeling inference
+### 5.5 Labeling inference
 
 - When only structural inference is possible (for example, seeing an `XxxRepository` name without reading its implementation), explicitly label it `Status: Inferred` and state the basis (directory structure / naming / configuration item / migration script).
 - Inferred content must not be placed in the `path → symbol` column of the "Source Evidence" table as if it were direct evidence; if it must be kept, put it on a separate line labeled "(inferred)".
 
 ---
 
-## 5. Example Content Labeling Rules
+## 6. Example Content Labeling Rules
 
-- All examples in the templates of this file (including the "cancel order" call chain, `src/order/service.ts` → `cancelOrder()`, `orders.status: PENDING_PAYMENT → CANCELLED`, and the test file example) are **Example (placeholder, not project fact)**.
+- All examples in the templates of this file (including the "cancel order" call chain, the source index example rows, `src/order/service.ts` → `cancelOrder()`, `orders.status: PENDING_PAYMENT → CANCELLED`, and the test file example) are **Example (placeholder, not project fact)**.
 - In generated documents, wherever example content remains, the label line must remain as well: `> Example (placeholder, not project fact). Replace it with real analysis results when generating documents.`
 - Replace examples with real analysis results during generation; **never** write template examples into a delivered document as project facts.
